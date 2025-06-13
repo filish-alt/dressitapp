@@ -6,6 +6,7 @@ import GradientButton from '../components/ui/GradientButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Checkbox from 'expo-checkbox';
 
+
 // Configure axios defaults
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 axios.defaults.headers.common['Accept'] = 'application/json';
@@ -18,16 +19,31 @@ const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const handleLogin = async () => {
+const handleLogin = async () => {
     setLoading(true);
      let response: any
-    try {
-       response = await axios.post('http://dressit.rasoisoftware.com/api/login', { email, password });
-      // Handle successful login (e.g., save token, navigate)
-      console.log("response ",response)
-      Alert.alert('Success', 'Login successful!');
-      
-      router.push('/welcome'); // Navigate to the welcome screen after successful login
+    
+ try {
+  response = await axios.post('http://dressit.rasoisoftware.com/api/login', { email, password });
+    if (!email || !password) {
+      console.log("error ",response.data.message)
+      window.alert('Login Failed: ' + (response.data.message || 'Login failed'));
+      Alert.alert('Validation Error', 'Email and password are required.');
+      return;
+    }
+        console.log("response ",response.data.status)
+      if (response.data.status === true) {
+        Alert.alert('Success', 'Login successful!');
+        router.push('/feed');
+      } else {
+      window.alert('Login Failed: ' + (response.data.message || 'Login failed'));
+      console.log('Login failed. Showing alert with message:', response.data.message);
+      Alert.alert(
+      'Login Failed',
+      response.data.message || 'Login failed',
+      [{ text: 'OK', onPress: () => console.log('User acknowledged') }]
+    );
+    }
     } catch (error: any) {
       console.log('Login error details:', {
         message: error?.message,
@@ -36,14 +52,7 @@ const LoginScreen: React.FC = () => {
         headers: error?.response?.headers,
         config: error?.config
       });
-      
-      Alert.alert(
-        'Login Failed',
-        JSON.stringify(error?.response?.data) ||
-        error?.message ||
-        'An error occurred'
-      );
-      
+ 
     } finally {
       setLoading(false);
     }
