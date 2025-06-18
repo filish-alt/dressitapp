@@ -40,7 +40,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="feed"
         options={{
-          title: 'Feed',
+          title: 'Home',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={focused ? "home" : "home-outline"} 
@@ -51,9 +51,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="search"
         options={{
-          title: 'Explore',
+          title: 'Search',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={focused ? "search" : "search-outline"} 
@@ -64,25 +64,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="add"
+        name="post"
         options={{
           title: 'Post',
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: ({ color, focused }) => (
             <MaterialCommunityIcons 
-              name="plus-box-outline" 
+              name={focused ? "plus-box" : "plus-box-outline"} 
               size={26} 
               color={color} 
             />
           ),
-          // Placeholder - will be implemented in future
-        }}
-        listeners={{
-          tabPress: (e) => {
-            // Prevent default behavior for now
-            e.preventDefault();
-            // In the future, this would open a post creation screen
-            alert('Post creation will be available in a future update');
-          },
         }}
       />
       <Tabs.Screen
@@ -96,15 +87,6 @@ export default function TabLayout() {
               color={color} 
             />
           ),
-          // Placeholder - will be implemented in future
-        }}
-        listeners={{
-          tabPress: (e) => {
-            // Prevent default behavior for now
-            e.preventDefault();
-            // In the future, this would navigate to the profile screen
-            alert('Profile screen will be available in a future update');
-          },
         }}
       />
     </Tabs>

@@ -5,6 +5,7 @@ import axios from 'axios';
 import GradientButton from '../components/ui/GradientButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Checkbox from 'expo-checkbox';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 // Configure axios defaults
@@ -19,7 +20,7 @@ const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-const handleLogin = async () => {
+const handleLogin = async () => { 
     setLoading(true);
      let response: any
     
@@ -33,6 +34,11 @@ const handleLogin = async () => {
     }
         console.log("response ",response.data.status)
       if (response.data.status === true) {
+        const token = response.data.data.token;
+         console.log('Login token:',token)
+        if (token) {
+          await AsyncStorage.setItem('token', token);
+        }
         Alert.alert('Success', 'Login successful!');
         router.push('/feed');
       } else {

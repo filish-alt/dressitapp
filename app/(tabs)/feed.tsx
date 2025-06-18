@@ -7,6 +7,7 @@ import {
   View, 
   TouchableOpacity,
   Text,
+  Image,
   Alert,
   Switch,
 } from 'react-native';
@@ -176,20 +177,19 @@ const renderItem = useCallback(({ item }: { item: Post }) => (
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.headerIcon} onPress={() => Alert.alert('Menu', 'Menu functionality will be implemented in a future update.')}>
-            <Ionicons name="menu-outline" size={28} color={textColor} />
-          </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>DressIt</ThemedText>
+         
+       <Image 
+          source={require('../../assets/images/logo.png')} 
+          style={styles.logo} 
+          resizeMode="contain" 
+        />
+      <ThemedText type="title" style={styles.headerTitle}>RESS IT</ThemedText>
+              
         </View>
         <View style={styles.headerRight}>
-          <Switch
-            trackColor={{ false: "#767577", true: "#81b0ff" }}
-            thumbColor={theme === 'dark' ? BRAND : "#f4f3f4"}
-            ios_backgroundColor="#3e3e3e"
-            onValueChange={toggleTheme}
-            value={theme === 'dark'}
-            style={styles.themeToggle}
-          />
+           <TouchableOpacity style={styles.headerIcon} onPress={() => Alert.alert('Menu', 'Menu functionality will be implemented in a future update.')}>
+            <Ionicons name="menu-outline" size={28} color={textColor} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -253,6 +253,11 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+   logo: {
+    width: 50,
+    height: 50,
+
   },
   headerTitle: {
     fontSize: 24,

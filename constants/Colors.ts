@@ -4,8 +4,14 @@
  */
 
 // Define the brand color as a constant for consistent use throughout the app
-export const BRAND = '#0a7ea4';
+export const BRAND = '#000';
 const tintColorDark = '#fff';
+
+export const GRADIENT_CONFIG = {
+  colors: ['#364DEF', '#5828AF'],
+  start: { x: 0, y: 0 },
+  end: { x: 1, y: 0 },
+};
 
 export const Colors = {
   light: {
