@@ -3,6 +3,8 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { PaperProvider, MD3DarkTheme, MD3LightTheme, adaptNavigationTheme } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { BRAND } from '@/constants/Colors';
@@ -38,20 +40,28 @@ function RootLayoutNavigation() {
       text: colors.text,
     },
   };
+  // Create a Paper theme that matches our app theme
+  const paperTheme = theme === 'dark' 
+    ? { ...MD3DarkTheme, colors: { ...MD3DarkTheme.colors, primary: BRAND, ...colors } }
+    : { ...MD3LightTheme, colors: { ...MD3LightTheme.colors, primary: BRAND, ...colors } };
 
   return (
-    <NavigationThemeProvider value={navigationTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="register" />
-        <Stack.Screen name="otp" />
-        <Stack.Screen name="forgot-password" />
-        <Stack.Screen name="reset-password" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-    </NavigationThemeProvider>
+    <SafeAreaProvider>
+      <PaperProvider theme={paperTheme}>
+        <NavigationThemeProvider value={navigationTheme}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="login" />
+            <Stack.Screen name="register" />
+            <Stack.Screen name="otp" />
+            <Stack.Screen name="forgot-password" />
+            <Stack.Screen name="reset-password" />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+        </NavigationThemeProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
