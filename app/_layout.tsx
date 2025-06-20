@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { BRAND } from '@/constants/Colors';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -49,6 +50,7 @@ function RootLayoutNavigation() {
     <SafeAreaProvider>
       <PaperProvider theme={paperTheme}>
         <NavigationThemeProvider value={navigationTheme}>
+         <GestureHandlerRootView style={{ flex: 1 }}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(tabs)" />
@@ -59,6 +61,7 @@ function RootLayoutNavigation() {
             <Stack.Screen name="reset-password" />
             <Stack.Screen name="+not-found" />
           </Stack>
+          </GestureHandlerRootView>
           <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
         </NavigationThemeProvider>
       </PaperProvider>

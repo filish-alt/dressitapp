@@ -18,83 +18,88 @@ const RegisterScreen: React.FC = () => {
   const [emailError, setEmailError] = useState('');
   const [checkingEmail, setCheckingEmail] = useState(false);
 
-  const checkEmailUniqueness = async () => {
-    if (!email || !email.trim()) {
-      setEmailError('Email is required');
-      return;
-    }
+  // const checkEmailUniqueness = async () => {
+  //   if (!email || !email.trim()) {
+  //     setEmailError('Email is required');
+  //     return;
+  //   }
     
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setEmailError('Please enter a valid email address');
-      return;
-    }
+  //   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  //   if (!emailRegex.test(email)) {
+  //     setEmailError('Please enter a valid email address');
+  //     return;
+  //   }
     
-    setCheckingEmail(true);
-    setEmailError('');
+  //   setCheckingEmail(true);
+  //   setEmailError('');
     
-    try {
-      // Mock email uniqueness check with setTimeout to simulate API delay
-      await new Promise<void>((resolve, reject) => {
-        setTimeout(() => {
-          // Check if email contains "exists@" to simulate an already registered email
-          if (email.toLowerCase().includes('exists@')) {
-            reject(new Error('Email already exists'));
-          } else {
-            resolve();
-          }
-        }, 1000); // 1 second delay to simulate network request
-      });
+  //   try {
+  //     // Mock email uniqueness check with setTimeout to simulate API delay
+  //     await new Promise<void>((resolve, reject) => {
+  //       setTimeout(() => {
+  //         // Check if email contains "exists@" to simulate an already registered email
+  //         if (email.toLowerCase().includes('exists@')) {
+  //           reject(new Error('Email already exists'));
+  //         } else {
+  //           resolve();
+  //         }
+  //       }, 1000); // 1 second delay to simulate network request
+  //     });
       
-      // If we reach here, the email is available
-      setEmailValidated(true);
-      setShowFullForm(true);
+  //     // If we reach here, the email is available
+  //     setEmailValidated(true);
+  //     setShowFullForm(true);
       
-    } catch (error: any) {
-      // Handle the case where email already exists
-      setEmailError('This email is already registered. Please sign in instead.');
-      setEmailValidated(false);
-      console.log('Email check error:', error.message);
-    } finally {
-      setCheckingEmail(false);
-    }
-  };
+  //   } catch (error: any) {
+  //     // Handle the case where email already exists
+  //     setEmailError('This email is already registered. Please sign in instead.');
+  //     setEmailValidated(false);
+  //     console.log('Email check error:', error.message);
+  //   } finally {
+  //     setCheckingEmail(false);
+  //   }
+  // };
 
-  const handleRegister = async () => {
-    if (!showFullForm) {
-      checkEmailUniqueness();
-      return;
+const handleRegister = async () => {
+  setLoading(true);
+  try {
+    const payload = {
+      name,
+      email,
+      phone,
+      password,
+      password_confirmation: passwordConfirmation,
+    };
+
+    const response = await axios.post(
+      'https://dev.dressitnow.com/api/register',
+      payload,
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    const { status, message, data } = response.data;
+
+    if (!status) {
+      // If validation fails, extract first error message
+      const firstErrorKey = Object.keys(data)[0];
+      const firstErrorMsg = data[firstErrorKey][0] || 'Registration failed';
+      Alert.alert('Registration Failed', firstErrorMsg);
+      return; // Don't proceed
     }
-    
-    setLoading(true);
-    try {
-      const payload = {
-        name,
-        email,
-        phone,
-        password,
-        password_confirmation: passwordConfirmation,
-      };
-      const response = await axios.post(
-        'http://dressit.rasoisoftware.com/api/register',
-        payload,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      console.log('response:', response.data);
-      Alert.alert('Success', 'Registration successful! Please check your email for OTP.');
-      router.push('/otp');
-    } catch (error: any) {
-      console.log('Registration error:', error?.response?.data);
-      Alert.alert(
-        'Registration Failed',
-        error?.response?.message ||
-          JSON.stringify(error?.response?.data) ||
-          'An error occurred'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    Alert.alert('Success', 'Registration successful! Please check your email for OTP.');
+    router.push('/otp');
+
+  } catch (error: any) {
+    console.log('Registration error:', error?.response?.data);
+    Alert.alert(
+      'Registration Failed',
+      error?.response?.data?.message || 'An unexpected error occurred.'
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <View style={styles.container}>
@@ -106,6 +111,11 @@ const RegisterScreen: React.FC = () => {
       <Text style={styles.title}>Sign Up</Text>
        <Text style={styles.socialText}>Enter Your Credential to Register</Text>
       <View style={styles.formContainer}>
+       
+        
+       
+        {
+          <>
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -120,23 +130,6 @@ const RegisterScreen: React.FC = () => {
         />
         
         {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-        
-        {!showFullForm && !checkingEmail && (
-          <GradientButton 
-            onPress={checkEmailUniqueness} 
-            title="Continue" 
-          />
-        )}
-        
-        {checkingEmail && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#364DEF" />
-            <Text style={styles.loadingText}>Checking email...</Text>
-          </View>
-        )}
-        
-        {showFullForm && (
-          <>
             <TextInput
               style={styles.input}
               placeholder="Name"
@@ -169,7 +162,7 @@ const RegisterScreen: React.FC = () => {
               title={loading ? 'Registering...' : 'Register'} 
             />
           </>
-        )}
+        }
       </View>
       
       <TouchableOpacity onPress={() => router.push('/login')}>

@@ -1,10 +1,11 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import './polyfills';
+
 import { Platform } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import GradientTabIcon from '@/components/GradientTabIcon';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { BRAND } from '@/constants/Colors';
 import { useTheme } from '@/context/ThemeContext';
@@ -42,8 +43,10 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "home" : "home-outline"} 
+            <GradientTabIcon 
+              focused={focused}
+              name="home-outline"
+              focusedName="home"
               size={24} 
               color={color} 
             />
@@ -55,8 +58,10 @@ export default function TabLayout() {
         options={{
           title: 'Search',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "search" : "search-outline"} 
+            <GradientTabIcon 
+              focused={focused}
+              name="search-outline"
+              focusedName="search"
               size={24} 
               color={color} 
             />
@@ -68,10 +73,13 @@ export default function TabLayout() {
         options={{
           title: 'Post',
           tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons 
-              name={focused ? "plus-box" : "plus-box-outline"} 
+            <GradientTabIcon 
+              focused={focused}
+              name="plus-box-outline"
+              focusedName="plus-box"
               size={26} 
-              color={color} 
+              color={color}
+              type="MaterialCommunityIcons"
             />
           ),
         }}
@@ -81,8 +89,10 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "person" : "person-outline"} 
+            <GradientTabIcon 
+              focused={focused}
+              name="person-outline"
+              focusedName="person"
               size={24} 
               color={color} 
             />

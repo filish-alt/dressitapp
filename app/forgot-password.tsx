@@ -12,7 +12,7 @@ const ForgotPasswordScreen: React.FC = () => {
   const handleForgotPassword = async () => {
     setLoading(true);
     try {
-      const response = await axios.post('http://dressit.rasoisoftware.com/api/forgot-password-otp', { email });
+      const response = await axios.post('https://dev.dressitnow.com/api/forgot-password-otp', { email });
       Alert.alert('Success', 'Password reset instructions sent to your email.');
       router.push('/reset-password');
     } catch (error: any) {

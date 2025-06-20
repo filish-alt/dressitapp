@@ -14,7 +14,7 @@ const ResetPasswordScreen: React.FC = () => {
   const handleResetPassword = async () => {
     setLoading(true);
     try {
-      const response = await axios.post('http://dressit.rasoisoftware.com/api/reset-password-otp', { email, otp, password: newPassword });
+      const response = await axios.post('https://dev.dressitnow.com/api/reset-password-otp', { email, otp, password: newPassword });
       Alert.alert('Success', 'Password reset successful! You can now login.');
       router.push('/login');
     } catch (error: any) {

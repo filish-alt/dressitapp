@@ -82,7 +82,7 @@ const OTPScreen: React.FC = () => {
     setLoading(true);
     try {
       // API call to verify OTP
-      const response = await axios.post('http://dressit.rasoisoftware.com/api/verify-otp', {
+      const response = await axios.post('https://dev.dressitnow.com/api/verify-otp', {
         email,
         otp: otpString
       });

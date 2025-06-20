@@ -62,52 +62,41 @@ const ProfileScreen: React.FC = () => {
   };
 
   const fetchUserProfile = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-         console.log('Login token:',token)
-      if (!token) {
-        Alert.alert('Unauthorized', 'No token found. Please login again.');
-        return;
-      }
+  try {
+  const token = await AsyncStorage.getItem('token');
+  console.log('Login token:', token);
 
-      // const response = await axios.get('https://dev.dressitnow.com/api/profile', {
-      //   headers: {
-      //     Authorization: `Bearer ${token}`,
-      //   },
-      // });
+  if (!token) {
+    Alert.alert('Unauthorized', 'No token found. Please login again.');
+    return;
+  }
+  
+  const response = await axios.get('https://dev.dressitnow.com/api/my-profile', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-      // const user = response.data.data.user;
-   const loadTestUser = async () => {
-    const user = {
-      name: 'Test User',
-      email: 'test@example.com',
-      phone: '+1234567890',
-      location: 'Ethiopia',
-      bio: 'Test bio',
-      nickname: 'tester',
-      gender: 'female',
-      interested_in: 'male',
-      dob: '1995-05-10',
-      profile_image: null,
-    };
+  const user = response.data.data;
+   
+  // Set profile data directly
+  setName(user?.name || '');
+  setEmail(user?.email || '');
+  setPhone(user?.phone || '');
+  setLocation(user?.location || '');
+  setBio(user?.bio || '');
+  setNickname(user?.nickname || '');
+  setGender(user?.gender || 'male');
+  setInterestedIn(user?.interested_in || 'female');
+  setDob(user?.dob ? new Date(user.dob) : new Date());
+  setProfileImage(user?.profile_image || null);
 
-      setName(user?.name || '');
-      setEmail(user?.email || '');
-      setPhone(user?.phone || '');
-      setLocation(user?.location || '');
-      setBio(user?.bio || '');
-      setNickname(user?.nickname || '');
-      setGender(user?.gender || 'male');
-      setInterestedIn(user?.interested_in || 'female');
-      setDob(user?.dob ? new Date(user.dob) : new Date());
-      setProfileImage(user?.profile_image || null);
-  };  loadTestUser();
-    } catch (error: any) {
-      console.error('Profile fetch error:', error?.response?.data || error.message);
-      Alert.alert('Error', 'Failed to fetch user profile');
-    }
-  };
+} catch (error: any) {
+  console.error('Profile fetch error:', error?.response?.data || error.message);
+  Alert.alert('Error', 'Failed to fetch user profile');
+}
 
+  }
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     

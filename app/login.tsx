@@ -25,7 +25,7 @@ const handleLogin = async () => {
      let response: any
     
  try {
-  response = await axios.post('http://dressit.rasoisoftware.com/api/login', { email, password });
+  response = await axios.post('https://dev.dressitnow.com/api/login', { email, password });
     if (!email || !password) {
       console.log("error ",response.data.message)
       window.alert('Login Failed: ' + (response.data.message || 'Login failed'));

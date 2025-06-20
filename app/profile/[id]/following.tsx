@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BRAND } from '../../../constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import GradientButton from '@/components/GradientButton';
 
 interface Following {
   id: string;
@@ -11,12 +12,14 @@ interface Following {
   username: string;
   profileImage: string | null;
   isFollowing: boolean;
+  isLoading?: boolean;
 }
 
 const FollowingScreen = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const [following, setFollowing] = React.useState<Following[]>(
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+  const [following, setFollowing] = useState<Following[]>(
     Array(20).fill(null).map((_, i) => ({
       id: String(i + 1),
       name: `User ${i + 1}`,
@@ -25,6 +28,28 @@ const FollowingScreen = () => {
       isFollowing: true
     }))
   );
+  
+  const handleFollowToggle = async (itemId: string) => {
+    // Set loading state for this specific item
+    setLoadingStates(prev => ({ ...prev, [itemId]: true }));
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Toggle follow status
+      const newFollowing = [...following];
+      const index = newFollowing.findIndex(f => f.id === itemId);
+      newFollowing[index] = {
+        ...newFollowing[index],
+        isFollowing: !newFollowing[index].isFollowing
+      };
+      setFollowing(newFollowing);
+    } finally {
+      // Clear loading state
+      setLoadingStates(prev => ({ ...prev, [itemId]: false }));
+    }
+  };
 
   const renderItem = ({ item }: { item: Following }) => (
     <TouchableOpacity 
@@ -42,36 +67,23 @@ const FollowingScreen = () => {
         <Text style={styles.name}>{item.name}</Text>
         <Text style={styles.username}>@{item.username}</Text>
       </View>
-      <TouchableOpacity 
-        style={[
-          styles.followButton,
-          item.isFollowing && styles.followingButton
-        ]}
-        onPress={() => {
-          // Toggle follow status
-          const newFollowing = [...following];
-          const index = newFollowing.findIndex(f => f.id === item.id);
-          newFollowing[index] = {
-            ...newFollowing[index],
-            isFollowing: !newFollowing[index].isFollowing
-          };
-          setFollowing(newFollowing);
-        }}
-      >
-        <Text style={[
-          styles.followButtonText,
-          item.isFollowing && styles.followingButtonText
-        ]}>
-          {item.isFollowing ? 'Following' : 'Follow'}
-        </Text>
-      </TouchableOpacity>
+      <GradientButton
+        title={item.isFollowing ? 'Following' : 'Follow'}
+        onPress={() => handleFollowToggle(item.id)}
+        loading={loadingStates[item.id]}
+        style={styles.followButton}
+        textStyle={styles.followButtonText}
+      />
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity 
+          onPress={() => router.back()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="arrow-back" size={24} color={BRAND} />
         </TouchableOpacity>
         <Text style={styles.title}>Following</Text>
@@ -142,22 +154,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   followButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: BRAND,
     marginLeft: 12,
-  },
-  followingButton: {
-    backgroundColor: '#f0f0f0',
+    minWidth: 90,
   },
   followButtonText: {
-    color: '#fff',
     fontSize: 12,
-    fontWeight: '500',
-  },
-  followingButtonText: {
-    color: BRAND,
   },
 });
 
