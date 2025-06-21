@@ -1,51 +1,115 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Image,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { BRAND } from '@/constants/Colors';
+import { Button } from 'react-native-paper';
+import * as ImagePicker from 'expo-image-picker';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function PostScreen() {
-  const { colors } = useTheme();
-  const backgroundColor = colors.background;
-  const textColor = colors.text;
+
+// export default function PostScreen() {
+//   const { colors } = useTheme();
+//   const backgroundColor = colors.background;
+//   const textColor = colors.text;
+export default function CreateLook() {
+  const [description, setDescription] = useState('');
+  const [goal, setGoal] = useState('');
+  const [location, setLocation] = useState('');
+  const [media, setMedia] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+
+
+ useEffect(() => {
+    const loadProfile = async () => {
+      const token = await AsyncStorage.getItem('token');
+      const res = await axios.get('https://dev.dressitnow.com/api/my-profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setProfile(res.data.data);
+    };
+    loadProfile();
+  }, []);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 1
+    });
+
+    if (!result.canceled) {
+      setMedia([...media, ...result.assets]);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!profile?.name || !profile?.gender || !profile?.interested_in || !profile?.dob) {
+      Alert.alert('Incomplete Profile', 'Please complete your profile (name, gender, interested in, age) to publish your look.');
+      return;
+    }
+
+    const token = await AsyncStorage.getItem('token');
+    const formData = new FormData();
+
+    formData.append('description', description);
+    formData.append('set_goal', goal);
+    formData.append('location', location);
+
+    media.forEach((file, index) => {
+      formData.append('media[]', {
+        uri: file.uri,
+        name: `media_${index}.jpg`,
+        type: 'image/jpeg'
+      } as any);
+    });
+
+    try {
+      const response = await axios.post('https://dev.dressitnow.com/api/looks', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      Alert.alert('Success', 'Your look has been published!');
+    } catch (error: any) {
+      console.error('Create look error:', error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to create look');
+    }
+  };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor }]} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Image 
-            source={require('../../assets/images/logo.png')} 
-            style={styles.logo} 
-            resizeMode="contain" 
-          />
-          <Text style={[styles.headerTitle, { color: textColor }]}>Create Post</Text>
-        </View>
+    <View style={{ padding: 20 }}>
+      <Text>Description:</Text>
+      <TextInput value={description} onChangeText={setDescription} style={{ borderBottomWidth: 1 }} />
+
+      <Text>Goal (Money):</Text>
+      <TextInput value={goal} onChangeText={setGoal} keyboardType="numeric" style={{ borderBottomWidth: 1 }} />
+
+      <Text>Location:</Text>
+      <TextInput value={location} onChangeText={setLocation} style={{ borderBottomWidth: 1 }} />
+
+      <Button title="Pick Images" onPress={pickImage} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+        {media.map((img, index) => (
+          <Image key={index} source={{ uri: img.uri }} style={{ width: 80, height: 80, margin: 5 }} />
+        ))}
       </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        <Ionicons name="images-outline" size={80} color={BRAND} style={styles.icon} />
-        <Text style={[styles.title, { color: textColor }]}>Post Creation</Text>
-        <Text style={[styles.subtitle, { color: textColor }]}>
-          This feature will be available in a future update.
-        </Text>
-        
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Coming Soon</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      <Button title="Publish Look" onPress={handleSubmit} />
+    </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -347,7 +347,12 @@ const fetchFollowing = async () => {
             onPress={() => setMenuVisible(true)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="menu" size={24} color={BRAND} />
+            <LinearGradient
+              {...GRADIENT_CONFIG}
+              style={styles.menuIconGradient}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       )}
@@ -466,9 +471,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    marginTop: 12,
+  },
+  menuIconGradient: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContainer: {
     flexGrow: 1,

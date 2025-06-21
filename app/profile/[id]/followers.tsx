@@ -109,7 +109,7 @@ const fetchFollowersFromApi = async () => {
     const formattedFollowers = (response.data.data || []).map(follower => ({
   id: follower.id.toString(),
   name: follower.name,
-  username: follower.username,
+  username: follower.nickname,
   profileImage: follower.profile_image,
   isFollowing: follower.is_following
 }));
