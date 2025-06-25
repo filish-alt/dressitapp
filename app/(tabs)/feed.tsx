@@ -9,17 +9,14 @@ import {
   Text,
   Image,
   Alert,
-  Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import PostCard from '@/components/post/PostCard';
-import { fetchPosts } from '@/lib/mocks/mockPosts';
-import { Post } from '@/lib/types/post';
+import { Post, getPosts, likePost, unlikePost } from '@/services/posts';
 import { useTheme } from '@/context/ThemeContext';
 import { BRAND } from '@/constants/Colors';
 
@@ -33,7 +30,7 @@ export default function FeedScreen() {
   const [error, setError] = useState<string | null>(null);
   
   const router = useRouter();
-  const { colors, theme, toggleTheme } = useTheme();
+  const { colors } = useTheme();
   const backgroundColor = colors.background;
   const textColor = colors.text;
 
@@ -42,7 +39,7 @@ export default function FeedScreen() {
     loadPosts();
   }, []);
 
-  // Load posts from our mock API
+  // Load posts from API
   const loadPosts = async (refresh = false) => {
     try {
       if (refresh) {
@@ -55,7 +52,11 @@ export default function FeedScreen() {
       }
 
       const currentPage = refresh ? 1 : page;
-      const newPosts = await fetchPosts(currentPage);
+      const newPosts = await getPosts({ 
+        page: currentPage, 
+        limit: 10,
+        sortBy: 'latest'
+      });
 
       if (newPosts.length === 0) {
         setHasMorePosts(false);
@@ -97,39 +98,67 @@ export default function FeedScreen() {
   }, [loadingMore, hasMorePosts, loading, refreshing]);
 
   // Handle like action
-  const handleLike = useCallback((postId: string) => {
-    console.log(`Like/unlike post: ${postId}`);
-  }, []);
+  const handleLike = useCallback(async (postId: string) => {
+    try {
+      const post = posts.find(p => p.id === postId);
+      if (!post) return;
+
+      // Optimistic update
+      setPosts(prevPosts => 
+        prevPosts.map(p => 
+          p.id === postId 
+            ? { 
+                ...p, 
+                isLiked: !p.isLiked,
+                likeCount: p.isLiked ? p.likeCount - 1 : p.likeCount + 1 
+              }
+            : p
+        )
+      );
+
+      if (post.isLiked) {
+        await unlikePost(postId);
+      } else {
+        await likePost(postId);
+      }
+    } catch (error) {
+      console.error(`Error toggling like for post ${postId}:`, error);
+      // Revert optimistic update
+      setPosts(prevPosts => 
+        prevPosts.map(p => 
+          p.id === postId 
+            ? { 
+                ...p, 
+                isLiked: !p.isLiked,
+                likeCount: p.isLiked ? p.likeCount - 1 : p.likeCount + 1 
+              }
+            : p
+        )
+      );
+      Alert.alert('Error', 'Failed to update like status. Please try again.');
+    }
+  }, [posts]);
 
   // Handle comment action
   const handleComment = useCallback((postId: string) => {
-    Alert.alert('Comments', 'Comments section will be implemented in a future update.');
-    console.log(`Comment on post: ${postId}`);
-  }, []);
+    router.push(`/post/${postId}/comments`);
+  }, [router]);
 
-
+  // Handle "Dress It Up" action
   const handleDressItUp = useCallback((postId: string) => {
-    Alert.alert('Dress It Up', 'This feature will allow you to try on this outfit virtually!');
-    console.log(`Dress up item from post: ${postId}`);
-  }, []);
-
-  // Handle view all comments
-  const handleViewComments = useCallback((postId: string) => {
-    Alert.alert('View Comments', 'Full comments view will be implemented in a future update.');
-    console.log(`View all comments for post: ${postId}`);
-  }, []);
+    router.push(`/post/${postId}/dress-it-up`);
+  }, [router]);
 
   // Render a post item
-const renderItem = useCallback(({ item }: { item: Post }) => (
+  const renderItem = useCallback(({ item }: { item: Post }) => (
     <PostCard
       post={item}
       onLike={handleLike}
       onComment={handleComment}
       onDressItUp={handleDressItUp}
-      onViewComments={handleViewComments}
       dressItUpButtonStyle={styles.dressItUpButton}
     />
-  ), [handleLike, handleComment, handleDressItUp, handleViewComments]);
+  ), [handleLike, handleComment, handleDressItUp]);
 
   // Render the footer (loading indicator when loading more posts)
   const renderFooter = useCallback(() => {
@@ -172,62 +201,84 @@ const renderItem = useCallback(({ item }: { item: Post }) => (
     );
   }, [error]);
 
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Ionicons name="alert-circle-outline" size={64} color="#e74c3c" />
+        <Text style={styles.errorTitle}>Oops!</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => loadPosts(true)}
+        >
+          <Text style={styles.retryText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]} edges={['top']}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-         
-       <Image 
-          source={require('../../assets/images/logo.png')} 
-          style={styles.logo} 
-          resizeMode="contain" 
-        />
-      <ThemedText type="title" style={styles.headerTitle}>RESS IT</ThemedText>
-              
+          <Image 
+            source={require('../../assets/images/logo.png')} 
+            style={styles.logo} 
+            resizeMode="contain" 
+          />
+          <ThemedText type="title" style={styles.headerTitle}>RESS IT</ThemedText>
         </View>
-        <View style={styles.headerRight}>
-           <TouchableOpacity style={styles.headerIcon} onPress={() => Alert.alert('Menu', 'Menu functionality will be implemented in a future update.')}>
-            <Ionicons name="menu-outline" size={28} color={textColor} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={() => router.push('/post')}
+        >
+          <Ionicons name="add-circle-outline" size={28} color={BRAND} />
+        </TouchableOpacity>
       </View>
 
-      {/* Error State */}
-      {error ? renderError() : (
-        <>
-          {loading && !refreshing && !loadingMore ? (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator size="large" color="#364DEF" />
+      {loading && !refreshing ? (
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color={BRAND} />
+        </View>
+      ) : (
+        <FlatList
+          data={posts}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color={BRAND} />
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="images-outline" size={64} color={textColor} />
+              <ThemedText type="subtitle" style={styles.emptyTitle}>No Posts Yet</ThemedText>
+              <ThemedText style={styles.emptyText}>
+                Start following stylish users to see their posts here!
+              </ThemedText>
             </View>
-          ) : (
-            /* Content - Posts Feed */
-            <FlatList
-              data={posts}
-              renderItem={renderItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              onEndReached={handleLoadMore}
-              onEndReachedThreshold={0.5}
-              ListFooterComponent={renderFooter}
-              ListEmptyComponent={renderEmpty}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={handleRefresh}
-                  colors={['#364DEF']}
-                  tintColor="#364DEF"
-                />
-              }
-              // Performance optimizations
-              initialNumToRender={3}
-              maxToRenderPerBatch={5}
-              windowSize={7}
-              removeClippedSubviews={true}
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[BRAND]}
+              tintColor={BRAND}
             />
-          )}
-        </>
+          }
+          // Performance optimizations
+          initialNumToRender={3}
+          maxToRenderPerBatch={5}
+          windowSize={7}
+          removeClippedSubviews={true}
+        />
       )}
     </SafeAreaView>
   );
@@ -236,6 +287,11 @@ const renderItem = useCallback(({ item }: { item: Post }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -250,25 +306,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-   logo: {
+  logo: {
     width: 50,
     height: 50,
-
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     marginLeft: 10,
   },
-  headerIcon: {
-    padding: 5,
-  },
-  themeToggle: {
-    marginLeft: 8,
+  createButton: {
+    padding: 8,
   },
   dressItUpButton: {
     width: '45%',
@@ -329,14 +377,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#364DEF',
+    backgroundColor: BRAND,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 8,
   },
   retryText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 16,
+    marginBottom: 8,
+    color: '#e74c3c',
+  },
+  errorText: {
+    textAlign: 'center',
+    color: '#666',
+    marginBottom: 16,
   },
 });
 

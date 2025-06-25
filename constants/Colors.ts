@@ -4,11 +4,12 @@
  */
 
 // Define the brand color as a constant for consistent use throughout the app
+import {ColorValue} from 'react-native'
 export const BRAND = '#000';
 const tintColorDark = '#fff';
 
 export const GRADIENT_CONFIG = {
-  colors: ['#364DEF', '#5828AF'],
+  colors: ['#364DEF', '#5828AF'] as [ColorValue,ColorValue],
   start: { x: 0, y: 0 },
   end: { x: 1, y: 0 },
 };

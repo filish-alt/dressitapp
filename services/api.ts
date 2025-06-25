@@ -3,7 +3,7 @@ import { getToken, refreshToken, removeToken } from './auth';
 import { useRouter } from 'expo-router';
 
 // Base URL for the API
-const API_BASE_URL = 'http://dressit.rasoisoftware.com/api';
+const API_BASE_URL = 'https://dev.dressitnow.com/api';
 
 // Create a new Axios instance
 const api: AxiosInstance = axios.create({

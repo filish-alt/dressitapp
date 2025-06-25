@@ -113,8 +113,8 @@ const ProfileScreenContent: React.FC<ProfileScreenContentProps> = ({
       profileImage: user.profile_image || null,
       stats: {
         posts: user.count_look || 0,
-        followers:0,
-        following:0,
+        followers:user.count_follower,
+        following:user.count_following,
 
       },
       isFollowing: false,

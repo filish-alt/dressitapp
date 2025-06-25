@@ -292,7 +292,7 @@ export default function CreateLook() {
           const progress = progressEvent.loaded / progressEvent.total;
           setUploadProgress(progress);
           
-          // Animate progress bar
+      
           Animated.timing(progressAnimation, {
             toValue: progress,
             duration: 200,
@@ -301,24 +301,24 @@ export default function CreateLook() {
         }
       });
       
-      // Provide haptic feedback for successful upload
+   
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
       Alert.alert('Success', 'Your look has been published!', [
         { text: 'OK', onPress: () => {
-          // Reset form
+         
           setDescription('');
           setGoal('');
           setLocation('');
           setMedia([]);
-          // Navigate back or to feed
-          router.push('/(tabs)');
+         
+          router.push('/feed');
         }}
       ]);
     } catch (error: any) {
       console.error('Create look error:', error.response?.data || error.message);
       Alert.alert('Error', error.response?.data?.message || 'Failed to create look');
-      // Provide haptic feedback for error
+     
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsSubmitting(false);
