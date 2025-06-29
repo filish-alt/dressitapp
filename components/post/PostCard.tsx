@@ -1,10 +1,12 @@
-import React, { useState, useCallback, memo } from 'react';
-import { StyleSheet, TouchableOpacity, View, Dimensions } from 'react-native';
+import React, { useState, useCallback, memo, useEffect } from 'react';
+import { StyleSheet, TouchableOpacity, View, Dimensions, TextInput, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { useSharedValue, withSpring, useAnimatedStyle, withSequence } from 'react-native-reanimated';
 import { TapGestureHandler } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { getPostComments, addComment } from '@/services/posts';
 
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -22,7 +24,6 @@ interface PostCardProps {
   onDressItUp?: (postId: string) => void;
   onViewComments?: (postId: string) => void;
   raisedAmount?: number; // New prop for raised amount
-  targetAmount?: number; // New prop for target amount
 }
 
 const PostCard: React.FC<PostCardProps> = ({
@@ -32,26 +33,76 @@ const PostCard: React.FC<PostCardProps> = ({
   onDressItUp,
   onViewComments,
   raisedAmount = 45, // Default value
-  targetAmount = 100, // Default value
 }) => {
+  // Safely check if post and user are defined before accessing properties
+  const isValidPost = post && post.user;
   const [liked, setLiked] = useState(post.isLiked || false);
   const [likesCount, setLikesCount] = useState(post.likes);
+  // Initialize comments with post.comments or empty array, will be updated from API
+  const [comments, setComments] = useState<Array<import('@/lib/types/post').Comment>>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [isPostingComment, setIsPostingComment] = useState(false);
   const lastTap = useSharedValue(0);
   const heartScale = useSharedValue(0);
   
-  // Calculate progress percentage
-  const progressPercentage = (raisedAmount / targetAmount) * 100;
+  // Get target amount directly from post.set_goal
+  const targetAmount = post?.set_goal ? parseFloat(post.set_goal) : 0;
 
-  const textColor = useThemeColor({}, 'text');
-  const subTextColor = useThemeColor({}, 'tabIconDefault'); // Using as a subdued color
-  const borderColor = useThemeColor({}, 'border');
+  const progressPercentage = targetAmount > 0 ? (raisedAmount / targetAmount) * 100 : 0;
+
+
+  // Fetch comments for the post
+  const router = useRouter();  
+
+  const fetchComments = useCallback(async () => {
+    try {
+      setIsLoadingComments(true);
+      const fetchedComments = await getPostComments(post.id);
+      setComments(fetchedComments);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    } finally {
+      setIsLoadingComments(false);
+    }
+  }, [post.id]);
+
+  const handleViewAllComments = () => {
+    router.push(`/comments/${post.id}`);  
+  };
+
+  // Add a new comment to the post
+  const handleAddComment = async () => {
+     console.log("cpmment 111")
+    if (!newComment.trim()) return;
+    
+    try {
+      setIsPostingComment(true);
+      const comment = await addComment(post.id, newComment.trim());
+      console.log("cpmment",comment)
+      // Add the new comment to the beginning of the comments array
+      setComments(prev => [comment, ...prev]);
+      setNewComment('');
+    } catch (error) {
+      console.error('Error posting comment:', error);
+    } finally {
+      setIsPostingComment(false);
+    }
+  };
+
+  // Fetch comments when the component mounts
+  // Fetch comments when component mounts
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
 
   // Format currency based on the post's currency
-  const formatCurrency = (price: number, currency: string): string => {
+  const formatCurrency = (amount: number | string, currency: string): string => {
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency,
-    }).format(price);
+      currency: currency || 'USD',
+    }).format(numericAmount);
   };
 
   // Handle double tap to like
@@ -89,17 +140,27 @@ const PostCard: React.FC<PostCardProps> = ({
     <ThemedView style={[styles.container, { backgroundColor: 'white' }]}>
       {/* Post Header */}
       <View style={styles.header}>
-        <Image source={{ uri: post.user.avatar }} style={styles.avatar} />
+        {/* Use fallback for profile image with proper null checks */}
+        {isValidPost && post.user.profile_image ? (
+          <Image 
+            source={{ uri: post.user.profile_image }} 
+            style={styles.avatar}
+          />
+        ) : (
+          <View style={[styles.avatar, styles.placeholderAvatar]}>
+            <Ionicons name="person" size={20} color="#ccc" />
+          </View>
+        )}
         <View style={styles.headerText}>
           <View style={styles.usernameContainer}>
             <ThemedText type="defaultSemiBold" style={[styles.username, { color: '#000' }]}>
-              {post.user.username}
+              {isValidPost ? post.user.name : 'User'}
             </ThemedText>
-            {post.user.isVerified && (
+            {isValidPost && post.user.isVerified && (
               <Ionicons name="checkmark-circle" size={16} color="#0095f6" style={styles.verifiedBadge} />
             )}
           </View>
-          <ThemedText style={[styles.location, { color: '#666' }]}>{post.location}</ThemedText>
+          <ThemedText style={[styles.location, { color: '#666' }]}>{post?.location || ''}</ThemedText>
         </View>
         <TouchableOpacity style={styles.moreButton}>
           <Feather name="more-horizontal" size={24} color="#000" />
@@ -110,7 +171,7 @@ const PostCard: React.FC<PostCardProps> = ({
       <TapGestureHandler onActivated={handleDoubleTap} numberOfTaps={2}>
         <Animated.View style={styles.imageContainer}>
           <Image
-            source={{ uri: post.images[0] }}
+            source={{ uri: post?.media?.[0]?.media_path || null }}
             style={styles.image}
             contentFit="cover"
             transition={200}
@@ -143,13 +204,15 @@ const PostCard: React.FC<PostCardProps> = ({
         </Animated.View>
       </TapGestureHandler>
 
-      {/* Price and Description */}
+      {/* Funding Goal and Description */}
       <View style={styles.priceContainer}>
         <ThemedText type="defaultSemiBold" style={styles.price}>
-          {formatCurrency(post.price, post.currency)}
+          Target: {post?.set_goal 
+            ? formatCurrency(post.set_goal, post.currency || 'USD') 
+            : '$0.00'}
         </ThemedText>
         <ThemedText style={styles.description} numberOfLines={2}>
-          {post.description}
+          {post?.description || 'No description available'}
         </ThemedText>
       </View>
       
@@ -159,12 +222,12 @@ const PostCard: React.FC<PostCardProps> = ({
           <View 
             style={[
               styles.progressFill, 
-              { width: `${progressPercentage}%` }
+              { width: `${Math.min(progressPercentage, 100)}%` }
             ]}
           />
         </View>
         <ThemedText style={styles.progressText}>
-          {raisedAmount} raised out of {targetAmount}
+          {formatCurrency(raisedAmount, post?.currency || 'USD')} raised out of {formatCurrency(targetAmount, post?.currency || 'USD')}
         </ThemedText>
       </View>
       
@@ -229,39 +292,80 @@ const PostCard: React.FC<PostCardProps> = ({
         {likesCount} likes
       </ThemedText>
 
-      {/* Comments Preview */}
-      {post.comments.length > 0 && (
-        <TouchableOpacity
-          style={styles.commentsPreview}
-          onPress={() => onViewComments && onViewComments(post.id)}
-        >
-          <ThemedText style={[styles.viewComments, { color: '#666' }]}>
-            View all {post.comments.length} comments
-          </ThemedText>
-        </TouchableOpacity>
-      )}
-
-      {/* Preview first comment if exists */}
-      {post.comments.length > 0 && (
-        <View style={styles.commentPreview}>
-          <ThemedText type="defaultSemiBold" style={[styles.commentUsername, { color: '#000' }]}>
-            {post.comments[0].user.username}
-          </ThemedText>
-          <ThemedText style={[styles.commentText, { color: '#333' }]} numberOfLines={1}>
-            {post.comments[0].text}
-          </ThemedText>
+      {/* Comments Section */}
+      {isLoadingComments ? (
+        <View style={styles.loadingComments}>
+          <ActivityIndicator size="small" color="#364DEF" />
         </View>
+      ) : (
+        <>
+          {/* Comments Preview */}
+          {comments.length > 0 && (
+            <TouchableOpacity
+              style={styles.commentsPreview}
+              onPress={handleViewAllComments}
+            >
+              <ThemedText style={[styles.viewComments, { color: '#666' }]}>
+                View all {comments.length} comments
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+
+          {/* Preview first two comments */}
+          {comments.slice(0, 2).map((comment) => (
+            <View key={comment.id} style={styles.commentPreview}>
+              <ThemedText type="defaultSemiBold" style={[styles.commentUsername, { color: '#000' }]}>
+                {comment.user?.id || 'Anonymous'}
+              </ThemedText>
+              <ThemedText style={[styles.commentText, { color: '#333' }]} numberOfLines={1}>
+                {comment.comment}
+              </ThemedText>
+            </View>
+          ))}
+        </>
       )}
 
       {/* Posted Time */}
       <ThemedText style={[styles.timestamp, { color: '#999' }]}>
-        {new Date(post.createdAt).toLocaleDateString()}
+        {post?.created_at || post?.created_at 
+          ? new Date( post?.created_at).toLocaleDateString() 
+          : 'Unknown date'}
       </ThemedText>
+      
+      {/* Comment Input */}
+      <View style={styles.commentInputContainer}>
+        <TextInput
+          style={styles.commentInput}
+          placeholder="Add a comment..."
+          value={newComment}
+          onChangeText={setNewComment}
+          placeholderTextColor="#999"
+          multiline
+        />
+        {isPostingComment ? (
+          <ActivityIndicator size="small" color="#364DEF" style={styles.commentButton} />
+        ) : (
+          <TouchableOpacity
+            onPress={handleAddComment}
+            style={styles.commentButton}
+            disabled={!newComment.trim()}
+          >
+            <LinearGradient
+              colors={['#364DEF', '#5828AF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.iconGradient, !newComment.trim() && styles.disabledButton]}
+            >
+              <Feather name="send" size={20} color="white" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Dress It Up Button */}
       <GradientButton
         title="Dress It Up"
-        onPress={() => onDressItUp && onDressItUp(post.id)}
+        onPress={() => post?.id && onDressItUp && onDressItUp(post.id)}
         style={styles.dressItUpButton}
       />
     </ThemedView>
@@ -292,6 +396,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+  },
+  placeholderAvatar: {
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   headerText: {
     flex: 1,
@@ -445,6 +556,39 @@ const styles = StyleSheet.create({
   dressItUpButton: {
     marginHorizontal: 12,
     marginBottom: 12,
+  },
+  commentInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F5F5F5',
+  },
+  commentInput: {
+    flex: 1,
+    minHeight: 36,
+    maxHeight: 80,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    fontSize: 14,
+    color: '#000',
+  },
+  commentButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  loadingComments: {
+    paddingVertical: 12,
+    alignItems: 'center',
   },
 });
 

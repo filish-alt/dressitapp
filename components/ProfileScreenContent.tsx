@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Modal, ScrollView, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Modal, ScrollView, Dimensions, Alert, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BRAND, GRADIENT_CONFIG } from '../constants/Colors';
 import axios from 'axios';
+import { Post, getMyPosts } from '../services/posts'; // Add import for Post and getPosts
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getToken, refreshToken, logout } from '../services/auth';
 
 // API response types
 interface Follower {
@@ -26,17 +28,13 @@ interface Following {
 
 interface FollowersResponse {
   followers: Follower[];
-  total: number;
+  count_follower: number;
 }
 interface FollowingsResponse {
   following: Following[];
   total: number;
 }
 
-interface Post {
-  id: string;
-  imageUrl: string | null;
-}
 
 // Helper component for gradient buttons
 const GradientButton: React.FC<{
@@ -58,10 +56,27 @@ const GradientButton: React.FC<{
   );
 };
 
-interface Post {
-  id: string;
-  imageUrl: string | null;
+// Using Post interface imported from services/posts.ts
+// Loading and error view definitions moved to before main component
+interface PostsErrorViewProps {
+  error: string | null;
+  onRetry: () => void;
 }
+
+const PostsLoadingView = () => (
+  <View style={styles.postsLoadingContainer}>
+    <ActivityIndicator size="large" color={BRAND} />
+  </View>
+);
+
+const PostsErrorView: React.FC<PostsErrorViewProps> = ({ error, onRetry }) => (
+  <View style={styles.postsErrorContainer}>
+    <Text style={styles.errorText}>{error}</Text>
+    <TouchableOpacity onPress={onRetry}>
+      <Text style={styles.retryText}>Try Again</Text>
+    </TouchableOpacity>
+  </View>
+);
 
 interface ProfileScreenContentProps {
   userId: string;
@@ -75,10 +90,26 @@ const ProfileScreenContent: React.FC<ProfileScreenContentProps> = ({
   showHeader = true 
 }) => {
   const router = useRouter();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<any>({ 
+    profileImage: null,
+    name: '',
+    username: '',
+    bio: '',
+    location: '',
+    stats: {
+      posts: 0,
+      followers: 0,
+      following: 0,
+    },
+    isFollowing: false,
+  });
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [postsError, setPostsError] = useState<string | null>(null);
   const [isLoadingFollow, setIsLoadingFollow] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [followers, setFollowers] = useState<Follower[]>([]);
   const [following, setFollowing] = useState<Following[]>([]);
   const [followersCount, setFollowersCount] = useState(0);
@@ -86,59 +117,215 @@ const ProfileScreenContent: React.FC<ProfileScreenContentProps> = ({
   const [followersLoading, setFollowersLoading] = useState(false);
   const [followersError, setFollowersError] = useState<string | null>(null);
 
-  useEffect(() => {
-  
-   const fetchProfileData = async () => {
+
+// Fetch user posts function outside of useEffect
+const fetchUserPosts = async () => {
+  setPostsLoading(true);
+  setPostsError(null);
+
   try {
+    const token = await AsyncStorage.getItem('token');
+
+    if (!token) {
+      console.warn('No token found. Redirecting to login...');
+      router.replace('/login');
+      return;
+    }
+
+    const fetchedPosts = await getMyPosts({ user_id: userId });
+    setPosts(fetchedPosts);
+  } catch (error: any) {
+    console.error('Failed to fetch posts:', error);
+    
+    if (error.response?.status === 401) {
+      await AsyncStorage.removeItem('token');
+      Alert.alert('Session Expired', 'Please log in again.');
+      router.replace('/login');
+    } else {
+      setPostsError('Failed to load posts. Please try again.');
+    }
+  } finally {
+    setPostsLoading(false);
+  }
+};
+
+
+// Profile data fetch
+const fetchProfileData = async () => {
+  try {
+    setLoading(true);
     const token = await AsyncStorage.getItem('token');
     console.log('Login token:', token);
 
     if (!token) {
       Alert.alert('Unauthorized', 'No token found. Please login again.');
+      router.replace('/login');
       return;
     }
 
-    const response = await axios.get('https://dev.dressitnow.com/api/my-profile', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    // Use different endpoints based on whether it's the user's own profile or another user's profile
+    const endpoint = isOwnProfile 
+      ? 'https://dev.dressitnow.com/api/my-profile' 
+      : `https://dev.dressitnow.com/api/user/${userId}`;
 
-    const user = response.data.data;
-    const profileData = {
-      name: user.name,
-      username: user.nickname,
-      bio: user.bio || '',
-      location: user.location || '',
-      profileImage: user.profile_image || null,
-      stats: {
-        posts: user.count_look || 0,
-        followers:user.count_follower,
-        following:user.count_following,
+    console.log(`Fetching profile data from endpoint: ${endpoint}`);
 
-      },
-      isFollowing: false,
-      posts: Array.from({ length: 9 }, (_, i) => ({
-        id: String(i + 1),
-        imageUrl: null,
-      })),
+    // Function to extract profile data from API response
+    const extractProfileData = (userData: any) => {
+      return {
+        name: userData.name || '',
+        username: userData.nickname || '',
+        bio: userData.bio || '',
+        location: userData.location || '',
+        profileImage: userData.profile_image || null,
+        stats: {
+          posts: userData.count_look || 0,
+          followers: userData.count_follower || 0,
+          following: userData.count_following || 0,
+        },
+        isFollowing: userData.is_following || false,
+      };
     };
 
-    setProfile(profileData);
-    fetchFollowers();
-    fetchFollowing();
+    try {
+      // First attempt with current token
+      const response = await axios.get(endpoint, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.data || !response.data.data) {
+        throw new Error('Invalid response structure from API');
+      }
+
+      const profileData = extractProfileData(response.data.data);
+      setProfile(profileData);
+      fetchFollowers();
+      fetchFollowing();
+    } catch (apiError: any) {
+      // If we get a 401 Unauthorized, try to refresh the token
+      if (apiError.response?.status === 401) {
+        console.log('Token expired, attempting to refresh...');
+        const newToken = await refreshToken();
+        
+        if (newToken) {
+          // If token refresh succeeded, retry the request with the new token
+          try {
+            const retryResponse = await axios.get(endpoint, {
+              headers: {
+                Authorization: `Bearer ${newToken}`,
+              },
+            });
+            
+            if (!retryResponse.data || !retryResponse.data.data) {
+              throw new Error('Invalid response structure from API after token refresh');
+            }
+            
+            const profileData = extractProfileData(retryResponse.data.data);
+            setProfile(profileData);
+            fetchFollowers();
+            fetchFollowing();
+          } catch (retryError) {
+            console.error('Error after token refresh:', retryError);
+            throw retryError;
+          }
+        } else {
+          // If token refresh failed, redirect to login
+          console.error('Token refresh failed');
+          await logout();
+          Alert.alert('Session Expired', 'Your session has expired. Please login again.');
+          router.replace('/login');
+          throw new Error('Authentication failed - token refresh failed');
+        }
+      } else {
+        // If not a 401, throw the original error
+        throw apiError;
+      }
+    }
   } catch (error: any) {
     console.error('Failed to fetch profile data:', error?.response?.data || error.message);
+    
+    // Handle specific error cases
+    if (error.response) {
+      // Server responded with a status other than 200 range
+      if (error.response.status === 401) {
+        await logout();
+        Alert.alert('Session Expired', 'Your session has expired. Please login again.');
+        router.replace('/login');
+      } else if (error.response.status === 404) {
+        Alert.alert('Not Found', 'User profile not found.');
+      } else {
+        Alert.alert('Error', `Failed to load profile: ${error.response.data?.message || 'Unknown error'}`);
+      }
+    } else if (error.request) {
+      // Request was made but no response received
+      Alert.alert('Network Error', 'Could not connect to the server. Please check your internet connection.');
+    } else {
+      // Something else happened while setting up the request
+      Alert.alert('Error', `An unexpected error occurred: ${error.message}`);
+    }
   } finally {
     setLoading(false);
   }
 };
 
-
-    fetchProfileData();
-  }, [userId]);
+const handleRefresh = async () => {
+  setRefreshing(true);
   
-  // Fetch followers data from API
+  // Create a copy of the current profile state to maintain during refresh
+  const currentProfile = { ...profile };
+  
+  try {
+    // Execute fetch operations sequentially instead of in parallel
+    // to better manage error states and prevent undefined access
+    try {
+      await fetchProfileData();
+    } catch (error) {
+      console.error('Error refreshing profile data:', error);
+      // Restore previous profile state on error
+      setProfile(currentProfile);
+    }
+    
+    try {
+      await fetchUserPosts();
+    } catch (error) {
+      console.error('Error refreshing posts:', error);
+      setPostsError('Failed to refresh posts');
+    }
+    
+  } catch (error) {
+    console.error('Error during refresh:', error);
+    // If any other errors occur, ensure we maintain the original profile state
+    setProfile(currentProfile);
+  } finally {
+    setRefreshing(false);
+  }
+};
+
+  useEffect(() => {
+    // Check authentication before loading data
+    const checkAuthAndLoadData = async () => {
+      try {
+
+        const token = await AsyncStorage.getItem('token');
+        if (!token) {
+          Alert.alert('Authentication Required', 'Please log in to view profiles.');
+          router.replace('/login');
+          return;
+        }
+        
+        // Prevent multiple simultaneous data fetches
+        await fetchProfileData();
+        await fetchUserPosts();
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      }
+    };
+    
+    checkAuthAndLoadData();
+  }, [userId]);
+
   const fetchFollowers = async () => {
     setFollowersLoading(true);
     setFollowersError(null);
@@ -228,7 +415,7 @@ const fetchFollowing = async () => {
   if (!profile) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Failed to load profile data.</Text>
+        <Text style={styles.errorText}>{profile ? 'Failed to load profile data.' : 'Loading...'}</Text>
       </View>
     );
   }
@@ -304,21 +491,25 @@ const fetchFollowing = async () => {
     router.push('/profileupdate');
   };
   
-  const PostGrid = ({ posts }: { posts: Post[] }) => {
+  interface PostGridProps {
+    postItems: Post[];
+  }
+
+  const PostGrid: React.FC<PostGridProps> = ({ postItems }) => {
     const width = Dimensions.get('window').width;
     const itemSize = (width - 4) / 3;
 
     return (
       <View style={styles.postsGrid}>
-        {posts.map((post) => (
+        {postItems.map((post) => (
           <TouchableOpacity 
             key={post.id}
             style={[styles.postItem, { width: itemSize, height: itemSize }]}
             onPress={() => router.push(`/post/${post.id}`)}
           >
-            {post.imageUrl ? (
+            {post.media?.[0]?.url ? (
               <Image 
-                source={{ uri: post.imageUrl }} 
+                source={{ uri: post.media[0].url }} 
                 style={styles.postImage} 
               />
             ) : (
@@ -357,10 +548,29 @@ const fetchFollowing = async () => {
         </View>
       )}
       
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            // Only allow refresh when not in loading state
+            onRefresh={loading ? undefined : handleRefresh}
+            tintColor={BRAND}
+            colors={[BRAND]}
+            // Prevent refresh if already loading data
+            enabled={!loading}
+          />
+        }
+      >
+
+        {postsLoading ? (
+          <PostsLoadingView />
+        ) : postsError ? (
+          <PostsErrorView error={postsError} onRetry={fetchUserPosts} />
+        ) : null}
         <View style={styles.profileContainer}>
           <View style={styles.imageContainer}>
-            {profile.profileImage ? (
+            {profile?.profileImage ? (
               <Image source={{ uri: profile.profileImage }} style={styles.profileImage} />
             ) : (
               <View style={styles.placeholderImage}>
@@ -422,7 +632,7 @@ const fetchFollowing = async () => {
                 
                 <GradientButton
                   title="Message"
-                  onPress={() => router.push('/messages')}
+                  onPress={() => router.push('/message')}
                   style={styles.messageButton}
                 />
               </>
@@ -430,7 +640,7 @@ const fetchFollowing = async () => {
           </View>
           
           {/* Posts Grid */}
-          <PostGrid posts={profile.posts} />
+          <PostGrid postItems={posts} />
         </View>
       </ScrollView>
       
@@ -460,6 +670,7 @@ const fetchFollowing = async () => {
     </SafeAreaView>
   );
 };
+
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -606,9 +817,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  postsLoadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    marginHorizontal: -16,
+    marginTop: 16,
+  },
+  postsErrorContainer: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    marginHorizontal: -16,
+    marginTop: 16,
+  },
   errorText: {
     color: 'red',
     fontSize: 16,
+    textAlign: 'center',
+  },
+  retryText: {
+    color: BRAND,
+    fontSize: 16,
+    marginTop: 10,
+    textAlign: 'center',
   },
   menuOverlay: {
     flex: 1,

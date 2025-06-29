@@ -113,7 +113,7 @@ const FollowingScreen = () => {
 
       console.log('API Response:', response.data);
 
-      const formattedFollowing = (response.data.data || []).map(user => ({
+      const formattedFollowing = (response.data.data || []).map((user: { id: { toString: () => any; }; name: any; nickname: any; profile_image: any; is_following: any; }) => ({
         id: user.id.toString(),
         name: user.name,
         username: user.nickname,
@@ -141,7 +141,15 @@ const FollowingScreen = () => {
       setRefreshing(false);
     }
   };
-  
+  const handleMessage = (userId: string, userName: string) => {
+  router.push({
+    pathname: '/message',
+    params: {
+      userId,
+      name: userName,
+    },
+  });
+};
   const handleFollowToggle = async (itemId: string) => {
     // Set loading state for this specific item
     setLoadingStates(prev => ({ ...prev, [itemId]: true }));
@@ -222,12 +230,12 @@ const FollowingScreen = () => {
         <Text style={styles.username}>@{item.username}</Text>
       </View>
       <GradientButton
-        title={item.isFollowing ? 'Following' : 'Follow'}
-        onPress={() => handleFollowToggle(item.id)}
-        loading={loadingStates[item.id]}
+        title="Message"
+        onPress={() => handleMessage(item.id, item.name)}
         style={styles.followButton}
         textStyle={styles.followButtonText}
       />
+
     </TouchableOpacity>
   );
 

@@ -97,47 +97,42 @@ export default function FeedScreen() {
     }
   }, [loadingMore, hasMorePosts, loading, refreshing]);
 
-  // Handle like action
-  const handleLike = useCallback(async (postId: string) => {
-    try {
-      const post = posts.find(p => p.id === postId);
-      if (!post) return;
 
-      // Optimistic update
-      setPosts(prevPosts => 
-        prevPosts.map(p => 
-          p.id === postId 
-            ? { 
-                ...p, 
-                isLiked: !p.isLiked,
-                likeCount: p.isLiked ? p.likeCount - 1 : p.likeCount + 1 
-              }
-            : p
-        )
-      );
+const handleLike = useCallback(async (postId: string) => {
+  const post = posts.find(p => p.id === postId);
+  if (!post) return;
 
-      if (post.isLiked) {
-        await unlikePost(postId);
-      } else {
-        await likePost(postId);
-      }
-    } catch (error) {
-      console.error(`Error toggling like for post ${postId}:`, error);
-      // Revert optimistic update
-      setPosts(prevPosts => 
-        prevPosts.map(p => 
-          p.id === postId 
-            ? { 
-                ...p, 
-                isLiked: !p.isLiked,
-                likeCount: p.isLiked ? p.likeCount - 1 : p.likeCount + 1 
-              }
-            : p
-        )
-      );
-      Alert.alert('Error', 'Failed to update like status. Please try again.');
-    }
-  }, [posts]);
+  const newIsLiked = !post.isLiked;
+  const newLikeCount = newIsLiked ? post.likeCount + 1 : post.likeCount - 1;
+
+  // Optimistic UI update
+  setPosts(prevPosts => 
+    prevPosts.map(p => 
+      p.id === postId 
+        ? { ...p, isLiked: newIsLiked, likeCount: newLikeCount }
+        : p
+    )
+  );
+
+  try {
+    await likePost(postId);
+  } catch (error) {
+    console.error(`Error toggling like for post ${postId}:`, error);
+
+    // Revert UI on error
+    setPosts(prevPosts => 
+      prevPosts.map(p => 
+        p.id === postId 
+          ? { ...p, isLiked: post.isLiked, likeCount: post.likeCount }
+          : p
+      )
+    );
+
+    Alert.alert('Error', 'Failed to update like status. Please try again.');
+  }
+}, [posts]);
+
+
 
   // Handle comment action
   const handleComment = useCallback((postId: string) => {
@@ -367,15 +362,7 @@ const styles = StyleSheet.create({
   errorIcon: {
     marginBottom: 16,
   },
-  errorTitle: {
-    marginBottom: 8,
-    color: '#e74c3c',
-  },
-  errorText: {
-    textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 20,
-  },
+
   retryButton: {
     backgroundColor: BRAND,
     paddingHorizontal: 20,

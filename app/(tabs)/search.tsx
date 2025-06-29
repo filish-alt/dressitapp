@@ -415,7 +415,7 @@ export default function SearchScreen() {
               />
             )}
           </>
-        )}
+        )};
 
         {/* Looks Tab Content */}
         {activeTab === 'looks' && (

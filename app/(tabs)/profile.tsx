@@ -23,6 +23,7 @@ export default function ProfileTab() {
           router.replace('/login');
           return;
         }
+        
 
         const response = await axios.get('https://dev.dressitnow.com/api/my-profile', {
           headers: {

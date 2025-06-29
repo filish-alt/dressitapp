@@ -26,7 +26,7 @@ interface FollowersApiResponse {
 }
 
 interface FollowApiResponse {
-  status: string;
+  status: boolean;
   message: string;
   is_following: boolean;
 }
@@ -107,11 +107,11 @@ const fetchFollowersFromApi = async () => {
     console.log('API Response:', response.data);
 
     const formattedFollowers = (response.data.data || []).map(follower => ({
-  id: follower.id.toString(),
-  name: follower.name,
-  username: follower.nickname,
-  profileImage: follower.profile_image,
-  isFollowing: follower.is_following
+      id: follower.id.toString(),
+      name: follower.name,
+      username: follower.nickname,
+      profileImage: follower.profile_image,
+      isFollowing: follower.is_following
 }));
 
     setFollowers(formattedFollowers);
@@ -125,58 +125,62 @@ const fetchFollowersFromApi = async () => {
 };
 
   
-  const handleFollowToggle = async (itemId: string) => {
-    // Set loading state for this specific item
-    setLoadingStates(prev => ({ ...prev, [itemId]: true }));
-    
-    try {
-      const token = await AsyncStorage.getItem('token');
-      
-      if (!token) {
-        Alert.alert('Error', 'You need to be logged in to follow users');
-        return;
-      }
-      
-      const follower = followers.find(f => f.id === itemId);
-      if (!follower) return;
-      
-      // Determine the API endpoint based on current follow status
-      const endpoint = follower.isFollowing ? 'unfollow' : 'follow';
-      
-      // Make API request to follow/unfollow
-      const response = await axios.post<FollowApiResponse>(
-        `https://dev.dressitnow.com/api/user/${itemId}/${endpoint}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      if (response.data.status === 'success') {
-        // Update the followers list with the new follow status
-        const newFollowers = [...followers];
-        const index = newFollowers.findIndex(f => f.id === itemId);
-        newFollowers[index] = {
-          ...newFollowers[index],
-          isFollowing: response.data.is_following
-        };
-        setFollowers(newFollowers);
-      } else {
-        throw new Error(response.data.message || `Failed to ${endpoint} user`);
-      }
-    } catch (error: any) {
-      console.error(`Failed to toggle follow status:`, error);
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to update follow status. Please try again later.'
-      );
-    } finally {
-      // Clear loading state
-      setLoadingStates(prev => ({ ...prev, [itemId]: false }));
+const handleFollowToggle = async (itemId: string) => {
+  // Set loading state for this specific item
+  setLoadingStates(prev => ({ ...prev, [itemId]: true }));
+
+  try {
+    const token = await AsyncStorage.getItem('token');
+
+    if (!token) {
+      Alert.alert('Error', 'You need to be logged in to follow/unfollow users');
+      return;
     }
-  };
+
+    const follower = followers.find(f => f.id === itemId);
+    if (!follower) return;
+
+    const isCurrentlyFollowing = follower.isFollowing;
+
+    // Decide endpoint based on follow status
+    const endpoint = isCurrentlyFollowing
+      ? 'https://dev.dressitnow.com/api/unfollow'
+      : 'https://dev.dressitnow.com/api/follow';
+
+    // Make API request
+    const response = await axios.post<FollowApiResponse>(
+      endpoint,
+      { following_id: itemId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    if (response.data.status === true) {
+      // Update the followers list with new follow status
+      const updatedFollowers = followers.map(f => {
+        if (f.id === itemId) {
+          return {
+            ...f,
+            isFollowing: !isCurrentlyFollowing
+          };
+        }
+        return f;
+      });
+
+      setFollowers(updatedFollowers);
+    } else {
+      throw new Error(response.data.message || 'Failed to update follow status');
+    }
+  } catch (error: any) {
+    console.error('Failed to toggle follow status:', error);
+    Alert.alert('Error', error.message || 'Failed to update follow status. Please try again later.');
+  } finally {
+    setLoadingStates(prev => ({ ...prev, [itemId]: false }));
+  }
+};
 
   const renderItem = ({ item }: { item: Follower }) => (
     <TouchableOpacity 

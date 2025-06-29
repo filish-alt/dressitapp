@@ -1,3 +1,4 @@
+import { Comment } from '@/lib/types/post';
 import api, { handleApiError } from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -23,14 +24,7 @@ export interface Post {
   createdAt: string;
 }
 
-export interface Comment {
-  id: string;
-  userId: string;
-  username: string;
-  avatarUrl?: string;
-  text: string;
-  createdAt: string;
-}
+
 
 // Types for API responses
 interface ApiResponse<T> {
@@ -43,6 +37,7 @@ interface ApiResponse<T> {
 interface PaginationParams {
   page?: number;
   limit?: number;
+  user_id?: string;
 }
 
 // Types for post creation
@@ -77,7 +72,7 @@ export const getPosts = async (filters?: PostFilters): Promise<Post[]> => {
     const token = await AsyncStorage.getItem('token');
     if (!token) throw new Error('No authentication token found');
     
-    const response = await api.get<ApiResponse<Post[]>>('/looks', { 
+    const response = await api.get<ApiResponse<Post[]>>('/all-looks', { 
       params: filters,
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -96,7 +91,7 @@ export const getPostById = async (postId: string): Promise<Post> => {
     const token = await AsyncStorage.getItem('token');
     if (!token) throw new Error('No authentication token found');
     
-    const response = await api.get<ApiResponse<Post>>(`/looks/${postId}`, {
+    const response = await api.get<ApiResponse<Post>>(`/all-looks/${postId}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data.data;
@@ -203,7 +198,7 @@ export const likePost = async (postId: string): Promise<void> => {
     const token = await AsyncStorage.getItem('token');
     if (!token) throw new Error('No authentication token found');
     
-    await api.post(`/looks/${postId}/like`, {}, {
+    await api.put(`/looks-like-unlike/${postId}`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     });
   } catch (error) {
@@ -220,7 +215,7 @@ export const unlikePost = async (postId: string): Promise<void> => {
     const token = await AsyncStorage.getItem('token');
     if (!token) throw new Error('No authentication token found');
     
-    await api.delete(`/looks/${postId}/like`, {
+    await api.put(`/looks-like-unlike/${postId}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
   } catch (error) {
@@ -261,7 +256,7 @@ export const getPostComments = async (postId: string, params?: PaginationParams)
     const token = await AsyncStorage.getItem('token');
     if (!token) throw new Error('No authentication token found');
     
-    const response = await api.get<ApiResponse<Comment[]>>(`/looks/${postId}/comments`, {
+    const response = await api.get<ApiResponse<Comment[]>>(`/looks-comments/${postId}`, {
       params,
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -280,7 +275,7 @@ export const addComment = async (postId: string, text: string): Promise<Comment>
     const token = await AsyncStorage.getItem('token');
     if (!token) throw new Error('No authentication token found');
     
-    const response = await api.post<ApiResponse<Comment>>(`/looks/${postId}/comments`, 
+    const response = await api.post<ApiResponse<Comment>>(`/looks-comments/${postId}`, 
       { text },
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -316,7 +311,7 @@ export const getUserPosts = async (userId: string, params?: PaginationParams): P
     const token = await AsyncStorage.getItem('token');
     if (!token) throw new Error('No authentication token found');
     
-    const response = await api.get<ApiResponse<Post[]>>(`/users/${userId}/looks`, {
+    const response = await api.get<ApiResponse<Post[]>>(`/all-looks/${userId}`, {
       params,
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -343,9 +338,19 @@ export const getSavedPosts = async (params?: PaginationParams): Promise<Post[]> 
 /**
  * Gets the current user's own posts
  */
-export const getMyPosts = async (params?: PaginationParams): Promise<Post[]> => {
+
+
+export const getMyPosts = async (): Promise<Post[]> => {
   try {
-    const response = await api.get<ApiResponse<Post[]>>('/looks/my-posts', { params });
+    const token = await AsyncStorage.getItem('token');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await api.get<ApiResponse<Post[]>>('/looks', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
     return response.data.data;
   } catch (error) {
     console.error('Error fetching my posts:', error);
@@ -368,29 +373,29 @@ export const contributeToPost = async (postId: string, amount: number): Promise<
 /**
  * Gets trending/popular posts
  */
-export const getTrendingPosts = async (params?: PaginationParams): Promise<Post[]> => {
-  try {
-    const filters: PostFilters = {
-      ...params,
-      sortBy: 'popular'
-    };
-    const response = await api.get<ApiResponse<Post[]>>('/looks/trending', { params: filters });
-    return response.data.data;
-  } catch (error) {
-    console.error('Error fetching trending posts:', error);
-    throw new Error(handleApiError(error));
-  }
-};
+// export const getTrendingPosts = async (params?: PaginationParams): Promise<Post[]> => {
+//   try {
+//     const filters: PostFilters = {
+//       ...params,
+//       sortBy: 'popular'
+//     };
+//     const response = await api.get<ApiResponse<Post[]>>('/looks/trending', { params: filters });
+//     return response.data.data;
+//   } catch (error) {
+//     console.error('Error fetching trending posts:', error);
+//     throw new Error(handleApiError(error));
+//   }
+// };
 
-/**
- * Reports a post for inappropriate content
- */
-export const reportPost = async (postId: string, reason: string): Promise<void> => {
-  try {
-    await api.post(`/looks/${postId}/report`, { reason });
-  } catch (error) {
-    console.error(`Error reporting post ${postId}:`, error);
-    throw new Error(handleApiError(error));
-  }
-};
+// /**
+//  * Reports a post for inappropriate content
+//  */
+// export const reportPost = async (postId: string, reason: string): Promise<void> => {
+//   try {
+//     await api.post(`/looks/${postId}/report`, { reason });
+//   } catch (error) {
+//     console.error(`Error reporting post ${postId}:`, error);
+//     throw new Error(handleApiError(error));
+//   }
+//};
 

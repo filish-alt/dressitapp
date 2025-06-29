@@ -5,29 +5,29 @@ const users: User[] = [
   {
     id: 'user1',
     username: 'sofia_style',
-    avatar: 'https://randomuser.me/api/portraits/women/12.jpg',
+    profile_image: 'https://randomuser.me/api/portraits/women/12.jpg',
     isVerified: true,
   },
   {
     id: 'user2',
     username: 'fashion_alex',
-    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+    profile_image: 'https://randomuser.me/api/portraits/men/32.jpg',
   },
   {
     id: 'user3',
     username: 'trend_watcher',
-    avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+    profile_image: 'https://randomuser.me/api/portraits/women/44.jpg',
     isVerified: true,
   },
   {
     id: 'user4',
     username: 'streetwear_mike',
-    avatar: 'https://randomuser.me/api/portraits/men/22.jpg',
+    profile_image: 'https://randomuser.me/api/portraits/men/22.jpg',
   },
   {
     id: 'user5',
     username: 'chic_styles',
-    avatar: 'https://randomuser.me/api/portraits/women/65.jpg',
+    profile_image: 'https://randomuser.me/api/portraits/women/65.jpg',
   },
 ];
 

@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosHeaders, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { getToken, refreshToken, removeToken } from './auth';
 import { useRouter } from 'expo-router';
 
@@ -34,15 +34,16 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 };
 
 // Request interceptor for API calls
+import { InternalAxiosRequestConfig } from 'axios';
+
 api.interceptors.request.use(
-  async (config: AxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
     const token = await getToken();
     if (token) {
-      // Set the Authorization header if we have a token
-      config.headers = {
+       config.headers = new AxiosHeaders({
         ...config.headers,
         Authorization: `Bearer ${token}`,
-      };
+      });
     }
     return config;
   },
@@ -50,6 +51,7 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
 
 // Response interceptor for API calls
 api.interceptors.response.use(
