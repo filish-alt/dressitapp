@@ -1,51 +1,28 @@
-module.exports = function(api) {
-  api.cache(true);
-  
-  return {
-    presets: [
-      'babel-preset-expo',
-    ],
-    plugins: [
-      [
-        '@babel/plugin-transform-runtime',
-        {
-          helpers: true,
-          regenerator: true,
-          corejs: false,
-          useESModules: false,
+module.exports = {
+  presets: [
+    ['module:metro-react-native-babel-preset', {
+      enableFlowComments: true,
+    }],
+    ['@babel/preset-flow', {
+      allowDeclareFields: true,
+    }]
+  ],
+  plugins: [
+    '@babel/plugin-syntax-flow',
+    [
+      'module-resolver',
+      {
+        root: ['./'],
+        alias: {
+          '@': './',
+          '@/components': './components',
+          '@/constants': './constants',
+          '@/app': './app',
+          '@/assets': './assets',
         },
-      ],
-      'react-native-reanimated/plugin', // Keep Reanimated plugin if used
-      [
-        'module-resolver',
-        {
-          root: ['./'],
-          extensions: [
-            '.ios.ts',
-            '.android.ts',
-            '.ts',
-            '.ios.tsx',
-            '.android.tsx',
-            '.tsx',
-            '.jsx',
-            '.js',
-            '.json',
-          ],
-          alias: {
-            '@': './',
-            '@/components': './components',
-            '@/constants': './constants',
-            '@/app': './app',
-            '@/assets': './assets',
-          },
-        },
-      ],
-    ],
-    env: {
-      production: {
-        plugins: ['transform-remove-console'], // Remove console.log in production
       },
-    },
-  };
+    ],
+    'react-native-reanimated/plugin',
+  ],
 };
 

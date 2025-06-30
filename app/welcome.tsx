@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import GradientButton from '../components/ui/GradientButton';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const WelcomeScreen: React.FC = () => {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const features = [
     {
@@ -23,7 +23,7 @@ const WelcomeScreen: React.FC = () => {
   ];
 
   const handleContinue = () => {
-    router.push('/(tabs)'); // Navigate to the main tabs
+    navigation.navigate('Tabs'); // Navigate to the main tabs
   };
 
   return (

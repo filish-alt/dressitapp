@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Image, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import GradientButton from '../components/ui/GradientButton';
 import axios from 'axios';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const RegisterScreen: React.FC = () => {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -87,7 +87,7 @@ const handleRegister = async () => {
       return; // Don't proceed
     }
     Alert.alert('Success', 'Registration successful! Please check your email for OTP.');
-    router.push('/otp');
+    (navigation as any).navigate('Tabs', { screen: 'OTP' })
 
   } catch (error: any) {
     console.log('Registration error:', error?.response?.data);
@@ -165,7 +165,7 @@ const handleRegister = async () => {
         }
       </View>
       
-      <TouchableOpacity onPress={() => router.push('/login')}>
+      <TouchableOpacity onPress={() => (navigation as any).navigate('Tabs', { screen: 'Login' })}>
         <Text style={styles.link}>Already have an account? Login</Text>
       </TouchableOpacity>
        <View style={styles.socialLoginContainer}>

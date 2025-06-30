@@ -7,7 +7,7 @@ import {
   ActivityIndicator, 
   StyleProp 
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { GRADIENT_CONFIG } from '@/constants/Colors';
 
 interface GradientButtonProps {

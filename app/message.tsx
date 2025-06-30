@@ -1,8 +1,9 @@
 import { View, Text } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useRoute } from '@react-navigation/native';
 
 export default function ChatScreen() {
-  const { userId, name } = useLocalSearchParams();
+  const route = useRoute();
+  const { userId, name } = (route.params as { userId?: string; name?: string }) || {};
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

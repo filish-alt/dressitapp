@@ -10,9 +10,9 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { ThemedText } from '@/components/ThemedText';
 import PostCard from '@/components/post/PostCard';
@@ -29,7 +29,7 @@ export default function FeedScreen() {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const router = useRouter();
+  const navigation = useNavigation();
   const { colors } = useTheme();
   const backgroundColor = colors.background;
   const textColor = colors.text;
@@ -136,13 +136,16 @@ const handleLike = useCallback(async (postId: string) => {
 
   // Handle comment action
   const handleComment = useCallback((postId: string) => {
-    router.push(`/post/${postId}/comments`);
-  }, [router]);
+   // navigation.navigate('PostDetails', { id: postId, screen: 'comments' });
+    (navigation as any).navigate('PostDetails', { id: postId, screen: 'comments' })
+  }, [navigation]);
 
   // Handle "Dress It Up" action
   const handleDressItUp = useCallback((postId: string) => {
-    router.push(`/post/${postId}/dress-it-up`);
-  }, [router]);
+   // navigation.navigate('PostDetails', { id: postId, screen: 'dress-it-up' });
+    (navigation as any).navigate('PostDetails', { id: postId, screen: 'dress-it-up' })
+
+  }, [navigation]);
 
   // Render a post item
   const renderItem = useCallback(({ item }: { item: Post }) => (
@@ -225,7 +228,7 @@ const handleLike = useCallback(async (postId: string) => {
         </View>
         <TouchableOpacity
           style={styles.createButton}
-          onPress={() => router.push('/post')}
+          onPress={() => (navigation as any).navigate('Post')}
         >
           <Ionicons name="add-circle-outline" size={28} color={BRAND} />
         </TouchableOpacity>

@@ -1,11 +1,13 @@
 import React, { useState, useCallback, memo, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, View, Dimensions, TextInput, ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image';
-import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import FeatherIcon from 'react-native-vector-icons/Feather';
+import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, { useSharedValue, withSpring, useAnimatedStyle, withSequence } from 'react-native-reanimated';
 import { TapGestureHandler } from 'react-native-gesture-handler';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import { getPostComments, addComment } from '@/services/posts';
 
 import { ThemedView } from '@/components/ThemedView';
@@ -53,7 +55,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
 
   // Fetch comments for the post
-  const router = useRouter();  
+  const navigation = useNavigation();
 
   const fetchComments = useCallback(async () => {
     try {
@@ -68,7 +70,9 @@ const PostCard: React.FC<PostCardProps> = ({
   }, [post.id]);
 
   const handleViewAllComments = () => {
-    router.push(`/comments/${post.id}`);  
+    // This will need to be adjusted based on your navigation stack structure
+    // For now, you can implement this based on your needs
+    console.log('Navigate to comments for post:', post.id);
   };
 
   // Add a new comment to the post
@@ -148,7 +152,7 @@ const PostCard: React.FC<PostCardProps> = ({
           />
         ) : (
           <View style={[styles.avatar, styles.placeholderAvatar]}>
-            <Ionicons name="person" size={20} color="#ccc" />
+            <Icon name="person" size={20} color="#ccc" />
           </View>
         )}
         <View style={styles.headerText}>
@@ -157,13 +161,13 @@ const PostCard: React.FC<PostCardProps> = ({
               {isValidPost ? post.user.name : 'User'}
             </ThemedText>
             {isValidPost && post.user.isVerified && (
-              <Ionicons name="checkmark-circle" size={16} color="#0095f6" style={styles.verifiedBadge} />
+            <Icon name="checkmark-circle" size={16} color="#0095f6" style={styles.verifiedBadge} />
             )}
           </View>
           <ThemedText style={[styles.location, { color: '#666' }]}>{post?.location || ''}</ThemedText>
         </View>
         <TouchableOpacity style={styles.moreButton}>
-          <Feather name="more-horizontal" size={24} color="#000" />
+          <FeatherIcon name="more-horizontal" size={24} color="#000" />
         </TouchableOpacity>
       </View>
 
@@ -184,7 +188,7 @@ const PostCard: React.FC<PostCardProps> = ({
               end={{ x: 1, y: 0 }}
               style={styles.heartGradient}
             >
-              <Ionicons name="heart" size={80} color="white" />
+              <Icon name="heart" size={80} color="white" />
             </LinearGradient>
           </Animated.View>
           
@@ -197,7 +201,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 end={{ x: 1, y: 0 }}
                 style={styles.heartIconGradient}
               >
-                <Ionicons name="heart" size={24} color="white" />
+                <Icon name="heart" size={24} color="white" />
               </LinearGradient>
             </View>
           )}
@@ -240,7 +244,7 @@ const PostCard: React.FC<PostCardProps> = ({
             end={{ x: 1, y: 0 }}
             style={styles.iconGradient}
           >
-            <Ionicons
+            <Icon
               name={liked ? 'heart' : 'heart-outline'}
               size={20}
               color="white"
@@ -258,7 +262,7 @@ const PostCard: React.FC<PostCardProps> = ({
             end={{ x: 1, y: 0 }}
             style={styles.iconGradient}
           >
-            <Feather name="message-circle" size={20} color="white" />
+            <FeatherIcon name="message-circle" size={20} color="white" />
           </LinearGradient>
         </TouchableOpacity>
         
@@ -269,7 +273,7 @@ const PostCard: React.FC<PostCardProps> = ({
             end={{ x: 1, y: 0 }}
             style={styles.iconGradient}
           >
-            <Feather name="share" size={20} color="white" />
+            <FeatherIcon name="share" size={20} color="white" />
           </LinearGradient>
         </TouchableOpacity>
         
@@ -282,7 +286,7 @@ const PostCard: React.FC<PostCardProps> = ({
             end={{ x: 1, y: 0 }}
             style={styles.iconGradient}
           >
-            <Feather name="bookmark" size={20} color="white" />
+            <FeatherIcon name="bookmark" size={20} color="white" />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -356,7 +360,7 @@ const PostCard: React.FC<PostCardProps> = ({
               end={{ x: 1, y: 0 }}
               style={[styles.iconGradient, !newComment.trim() && styles.disabledButton]}
             >
-              <Feather name="send" size={20} color="white" />
+              <FeatherIcon name="send" size={20} color="white" />
             </LinearGradient>
           </TouchableOpacity>
         )}

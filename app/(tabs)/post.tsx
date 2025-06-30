@@ -14,16 +14,14 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useNavigation } from '@react-navigation/native';
 import { BRAND, GRADIENT_CONFIG } from '@/constants/Colors';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import * as Haptics from 'expo-haptics';
-import { Video } from 'expo-av';
+import { launchImageLibrary, ImagePickerResponse, MediaType } from 'react-native-image-picker';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import GradientButton from '@/components/ui/GradientButton';
 
 // Constants for file validation
@@ -33,7 +31,7 @@ const ALLOWED_VIDEO_TYPES = ['mp4', 'mov', '3gp', 'avi'];
 
 
 export default function CreateLook() {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [description, setDescription] = useState('');
   const [goal, setGoal] = useState('');
   const [location, setLocation] = useState('');
@@ -58,17 +56,8 @@ export default function CreateLook() {
   }, []);
 
   const requestMediaPermission = async () => {
-    if (Platform.OS !== 'web') {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      setPermissionStatus(status);
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission needed',
-          'We need access to your photos and videos to create a look.'
-        );
-      }
-    }
+    // For React Native CLI, permissions are handled automatically by react-native-image-picker
+    setPermissionStatus('granted');
   };
 
   const loadProfile = async () => {
@@ -90,104 +79,47 @@ export default function CreateLook() {
   };
 
   const pickMedia = async () => {
-    if (permissionStatus !== 'granted') {
-      await requestMediaPermission();
-      if (permissionStatus !== 'granted') return;
-    }
-    
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All, // Allow both images and videos
-        allowsMultipleSelection: true,
+      const options = {
+        mediaType: 'mixed' as MediaType,
+        includeBase64: false,
+        maxHeight: 2000,
+        maxWidth: 2000,
         quality: 0.7,
-        videoMaxDuration: 60, // Limit video duration to 60 seconds
-      });
+        selectionLimit: 10,
+      };
 
-      if (!result.canceled) {
-        // Process and validate the selected media files
-        const validatedMediaPromises = result.assets.map(async (asset) => {
-          // Get file info for size checking
-          const fileInfo = await FileSystem.getInfoAsync(asset.uri);
-          const fileSize = fileInfo.size || 0;
-          
-          // Extract file extension
-          const fileExtension = asset.uri.split('.').pop()?.toLowerCase() || '';
-          const isImage = ALLOWED_IMAGE_TYPES.includes(fileExtension);
-          const isVideo = ALLOWED_VIDEO_TYPES.includes(fileExtension);
-          
-          // Validate file size
-          if (fileSize > MAX_FILE_SIZE) {
+      launchImageLibrary(options, (response: ImagePickerResponse) => {
+        if (response.didCancel || response.errorMessage) {
+          return;
+        }
+
+        if (response.assets) {
+          const validAssets = response.assets.map(asset => {
+            const fileExtension = asset.uri?.split('.').pop()?.toLowerCase() || '';
+            const isVideo = ALLOWED_VIDEO_TYPES.includes(fileExtension);
+            
             return {
-              valid: false,
-              reason: `File exceeds maximum size (${(MAX_FILE_SIZE / (1024 * 1024)).toFixed(0)}MB)`
-            };
-          }
-          
-          // Validate file type
-          if (!isImage && !isVideo) {
-            return {
-              valid: false,
-              reason: 'Unsupported file type'
-            };
-          }
-          
-          // If valid, return enhanced asset object
-          return {
-            valid: true,
-            asset: {
-              ...asset,
-              fileSize,
+              uri: asset.uri,
+              fileSize: asset.fileSize || 0,
               fileType: isVideo ? 'video' : 'image',
-              fileExtension
-            }
-          };
-        });
-        
-        // Wait for all validations to complete
-        const validatedResults = await Promise.all(validatedMediaPromises);
-        
-        // Filter out invalid files and collect reasons
-        const invalidReasons = validatedResults
-          .filter(result => !result.valid)
-          .map(result => result.reason);
-        
-        // Get valid assets
-        const validAssets = validatedResults
-          .filter(result => result.valid)
-          .map(result => result.asset);
-        
-        // Add valid assets to media state
-        if (validAssets.length > 0) {
+              fileExtension,
+              type: asset.type,
+              fileName: asset.fileName,
+            };
+          });
+          
           setMedia([...media, ...validAssets]);
-          // Provide haptic feedback for successful media selection
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
-        
-        // If there were invalid files, show alert
-        if (invalidReasons.length > 0) {
-          // Filter to show unique reasons only
-          const uniqueReasons = [...new Set(invalidReasons)];
-          Alert.alert(
-            'Some files could not be added',
-            uniqueReasons.join('\n'),
-            [{ text: 'OK' }]
-          );
-          // Provide haptic feedback for warning
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        }
-      }
+      });
     } catch (error) {
       console.error('Error picking media:', error);
       Alert.alert('Error', 'Failed to select media');
-      // Provide haptic feedback for error
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
   const removeMedia = (index: number) => {
     setMedia(media.filter((_, i) => i !== index));
-    // Provide haptic feedback when removing media
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
   const validateFields = (): boolean => {
@@ -234,8 +166,6 @@ export default function CreateLook() {
 
   const handleSubmit = async () => {
     if (!validateFields()) {
-      // Provide haptic feedback for validation error
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
     
@@ -245,8 +175,6 @@ export default function CreateLook() {
         'Incomplete Profile',
         `Please enter this info to publish your looks:\n• ${missingFields.join('\n• ')}`
       );
-      // Provide haptic feedback for incomplete profile
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
     
@@ -301,25 +229,18 @@ export default function CreateLook() {
         }
       });
       
-   
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
       Alert.alert('Success', 'Your look has been published!', [
         { text: 'OK', onPress: () => {
-         
           setDescription('');
           setGoal('');
           setLocation('');
           setMedia([]);
-         
-          router.push('/feed');
+          (navigation as any).navigate('Tabs', { screen: 'Feed' })
         }}
       ]);
     } catch (error: any) {
       console.error('Create look error:', error.response?.data || error.message);
       Alert.alert('Error', error.response?.data?.message || 'Failed to create look');
-     
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsSubmitting(false);
       setShowProgress(false);
@@ -375,14 +296,10 @@ export default function CreateLook() {
                       return (
                         <View key={index} style={styles.mediaPreview}>
                           {isVideo ? (
-                            <Video
-                              source={{ uri: item.uri }}
-                              style={styles.mediaImage}
-                              resizeMode="cover"
-                              shouldPlay={false}
-                              isMuted={true}
-                              useNativeControls={false}
-                            />
+                            <View style={styles.videoPlaceholder}>
+                              <Ionicons name="play-circle" size={30} color="#fff" />
+                              <Text style={styles.videoText}>Video</Text>
+                            </View>
                           ) : (
                             <Image source={{ uri: item.uri }} style={styles.mediaImage} />
                           )}
@@ -690,6 +607,18 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: 20,
+  },
+  videoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoText: {
+    color: '#fff',
+    fontSize: 12,
+    marginTop: 4,
   },
 });
 

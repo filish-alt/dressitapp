@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import GradientButton from '../components/ui/GradientButton';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Checkbox from 'expo-checkbox';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Checkbox } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -13,7 +13,7 @@ axios.defaults.headers.common['Content-Type'] = 'application/json';
 axios.defaults.headers.common['Accept'] = 'application/json';
 
 const LoginScreen: React.FC = () => {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,7 +40,8 @@ const handleLogin = async () => {
           await AsyncStorage.setItem('token', token);
         }
         Alert.alert('Success', 'Login successful!');
-        router.push('/feed');
+        (navigation as any).navigate('Tabs', { screen: 'Feed' });
+        
       } else {
       window.alert('Login Failed: ' + (response.data.message || 'Login failed'));
       console.log('Login failed. Showing alert with message:', response.data.message);
@@ -105,14 +106,14 @@ const handleLogin = async () => {
         <View style={styles.rememberMeRow}>
           <View style={styles.rememberMeContainer}>
             <Checkbox
-              value={rememberMe}
-              onValueChange={setRememberMe}
-              color={rememberMe ? '#364DEF' : undefined}
-              style={styles.checkbox}
+              status={rememberMe ? 'checked' : 'unchecked'}
+              onPress={() => setRememberMe(!rememberMe)}
+              uncheckedColor="#ccc"
+              color="#364DEF"
             />
             <Text style={styles.rememberMeText}>Remember Me</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push('/forgot-password')}>
+          <TouchableOpacity onPress={() =>(navigation as any).navigate('Tabs', { screen: 'ForgotPassword' })}>
             <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
@@ -142,7 +143,7 @@ const handleLogin = async () => {
         
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have account? </Text>
-          <TouchableOpacity onPress={() => router.push('/register')}>
+          <TouchableOpacity onPress={() =>(navigation as any).navigate('Tabs', { screen: 'Register' })}>
             <Text style={styles.signupLink}>Sign up</Text>
           </TouchableOpacity>
         </View>

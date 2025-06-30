@@ -13,18 +13,19 @@ import {
 } from 'react-native';
 import { Button, Card, Title } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import GradientButton from '../components/ui/GradientButton';
 import axios from 'axios';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { launchImageLibrary, ImagePickerResponse, MediaType } from 'react-native-image-picker';
+// import DateTimePicker from '@react-native-community/datetimepicker'; // Removed for React Native CLI compatibility
 import { BRAND, GRADIENT_CONFIG } from '../constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ProfileScreen: React.FC = () => {
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -50,15 +51,7 @@ const ProfileScreen: React.FC = () => {
   }, []);
 
   const requestImagePermission = async () => {
-    if (Platform.OS !== 'web') {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission needed',
-          'Sorry, we need camera roll permissions to upload profile picture!'
-        );
-      }
-    }
+    // For React Native CLI, permissions are handled automatically by react-native-image-picker
   };
 
   const fetchUserProfile = async () => {
@@ -126,16 +119,23 @@ const ProfileScreen: React.FC = () => {
   };
 
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
+    const options = {
+      mediaType: 'photo' as MediaType,
+      includeBase64: false,
+      maxHeight: 2000,
+      maxWidth: 2000,
       quality: 0.7,
-    });
+    };
 
-    if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
-    }
+    launchImageLibrary(options, (response: ImagePickerResponse) => {
+      if (response.didCancel || response.errorMessage) {
+        return;
+      }
+
+      if (response.assets && response.assets[0]) {
+        setProfileImage(response.assets[0].uri || null);
+      }
+    });
   };
 
   const formatDate = (date: Date) => {
@@ -224,7 +224,7 @@ const handleUpdateProfile = async () => {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
 
          <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
                   <Ionicons name="arrow-back" size={24} color={BRAND} />
                   </TouchableOpacity>
             </View>
@@ -483,6 +483,7 @@ const handleUpdateProfile = async () => {
                 <Ionicons name="calendar-outline" size={24} color="#687076" />
               </TouchableOpacity>
               
+              {/* Temporarily disabled DateTimePicker for React Native CLI compatibility
               {showDatePicker && (
                 <DateTimePicker
                   value={dob}
@@ -492,6 +493,7 @@ const handleUpdateProfile = async () => {
                   maximumDate={new Date()}
                 />
               )}
+              */}
             </View>
             
             {/* Submit Button */}

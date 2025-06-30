@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import GradientButton from '../components/ui/GradientButton';
 import axios from 'axios';
 
 const ResetPasswordScreen: React.FC = () => {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -16,7 +16,7 @@ const ResetPasswordScreen: React.FC = () => {
     try {
       const response = await axios.post('https://dev.dressitnow.com/api/reset-password-otp', { email, otp, password: newPassword });
       Alert.alert('Success', 'Password reset successful! You can now login.');
-      router.push('/login');
+      (navigation as any).navigate('Tabs', { screen: 'Login' })
     } catch (error: any) {
       Alert.alert('Reset Failed', error?.response?.data?.message || 'An error occurred');
     } finally {
@@ -50,7 +50,7 @@ const ResetPasswordScreen: React.FC = () => {
         onChangeText={setNewPassword}
       />
       <GradientButton onPress={handleResetPassword} title={loading ? 'Resetting...' : 'Reset Password'} />
-      <TouchableOpacity onPress={() => router.push('/login')}><Text style={styles.link}>Back to Login</Text></TouchableOpacity>
+      <TouchableOpacity onPress={() =>(navigation as any).navigate('Tabs', { screen: 'Login' })}><Text style={styles.link}>Back to Login</Text></TouchableOpacity>
     </View>
   );
 };

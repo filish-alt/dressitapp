@@ -11,13 +11,14 @@ import {
   Platform,
   ScrollView
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
 import GradientButton from '../components/ui/GradientButton';
 
 const OTPScreen: React.FC = () => {
-  const router = useRouter();
-  const { email } = useLocalSearchParams();
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { email } = (route.params as { email?: string }) || {};
   const [loading, setLoading] = useState(false);
   
   // Create separate state for each digit
@@ -88,7 +89,7 @@ const OTPScreen: React.FC = () => {
       });
       
       Alert.alert('Success', 'OTP verified successfully!');
-      router.push('/home'); // Navigate to home screen after successful verification
+      (navigation as any).navigate('Tabs', { screen: 'Feed' })// Navigate to main app after successful verification
     } catch (error: any) {
       console.log('OTP verification error:', error);
       Alert.alert(
@@ -170,7 +171,7 @@ const OTPScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
           
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.backLink}>Go Back</Text>
           </TouchableOpacity>
         </View>

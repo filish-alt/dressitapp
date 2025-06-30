@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Modal, ScrollView, Dimensions, Alert, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { BRAND, GRADIENT_CONFIG } from '../constants/Colors';
 import axios from 'axios';
 import { Post, getMyPosts } from '../services/posts'; // Add import for Post and getPosts
@@ -89,7 +89,7 @@ const ProfileScreenContent: React.FC<ProfileScreenContentProps> = ({
   isOwnProfile, 
   showHeader = true 
 }) => {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [profile, setProfile] = useState<any>({ 
     profileImage: null,
     name: '',
@@ -128,7 +128,7 @@ const fetchUserPosts = async () => {
 
     if (!token) {
       console.warn('No token found. Redirecting to login...');
-      router.replace('/login');
+      navigation.navigate('Login');
       return;
     }
 
@@ -140,7 +140,7 @@ const fetchUserPosts = async () => {
     if (error.response?.status === 401) {
       await AsyncStorage.removeItem('token');
       Alert.alert('Session Expired', 'Please log in again.');
-      router.replace('/login');
+      navigation.navigate('Login');
     } else {
       setPostsError('Failed to load posts. Please try again.');
     }
@@ -159,7 +159,7 @@ const fetchProfileData = async () => {
 
     if (!token) {
       Alert.alert('Unauthorized', 'No token found. Please login again.');
-      router.replace('/login');
+      navigation.navigate('Login');
       return;
     }
 
@@ -235,7 +235,7 @@ const fetchProfileData = async () => {
           console.error('Token refresh failed');
           await logout();
           Alert.alert('Session Expired', 'Your session has expired. Please login again.');
-          router.replace('/login');
+          navigation.navigate('Login');
           throw new Error('Authentication failed - token refresh failed');
         }
       } else {
@@ -252,7 +252,7 @@ const fetchProfileData = async () => {
       if (error.response.status === 401) {
         await logout();
         Alert.alert('Session Expired', 'Your session has expired. Please login again.');
-        router.replace('/login');
+        navigation.navigate('Login');
       } else if (error.response.status === 404) {
         Alert.alert('Not Found', 'User profile not found.');
       } else {
@@ -311,7 +311,7 @@ const handleRefresh = async () => {
         const token = await AsyncStorage.getItem('token');
         if (!token) {
           Alert.alert('Authentication Required', 'Please log in to view profiles.');
-          router.replace('/login');
+          navigation.navigate('Login');
           return;
         }
         
@@ -423,15 +423,11 @@ const fetchFollowing = async () => {
   const handleStatPress = (type: 'posts' | 'followers' | 'following') => {
     // Pass the followers data as params when navigating to the followers screen
     if (type === 'followers') {
-      router.push({
-        pathname: `/profile/${userId}/${type}`,
-        params: { 
-          data: JSON.stringify(followers),
-          count: followersCount.toString()
-        }
-      });
+      // Use the href format with query parameters
+      const href = `/profile/${userId}/${type}?data=${encodeURIComponent(JSON.stringify(followers))}&count=${followersCount}`;
+      navigation.navigate('ProfileFollowers', { userId, data: followers, count: followersCount });
     } else {
-      router.push(`/profile/${userId}/${type}`);
+      navigation.navigate(`Profile${type.charAt(0).toUpperCase() + type.slice(1)}`, { userId });
     }
   };
 
@@ -488,7 +484,7 @@ const fetchFollowing = async () => {
   
   const handleEditProfile = () => {
     setMenuVisible(false);
-    router.push('/profileupdate');
+    navigation.navigate('ProfileUpdate');
   };
   
   interface PostGridProps {
@@ -505,7 +501,7 @@ const fetchFollowing = async () => {
           <TouchableOpacity 
             key={post.id}
             style={[styles.postItem, { width: itemSize, height: itemSize }]}
-            onPress={() => router.push(`/post/${post.id}`)}
+            onPress={() => navigation.navigate('PostDetail', { postId: post.id })}
           >
             {post.media?.[0]?.url ? (
               <Image 
@@ -528,7 +524,7 @@ const fetchFollowing = async () => {
       {showHeader && (
         <View style={styles.header}>
           <TouchableOpacity 
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="arrow-back" size={24} color={BRAND} />
@@ -589,7 +585,7 @@ const fetchFollowing = async () => {
           <View style={styles.statsContainer}>
             <TouchableOpacity 
               style={styles.statItem}
-              onPress={() => router.push(`/profile/${userId}/posts`)}
+              onPress={() => navigation.navigate('ProfilePosts', { userId })}
             >
               <Text style={styles.statCount}>{profile.stats.posts}</Text>
               <Text style={styles.statLabel}>Posts</Text>
@@ -597,7 +593,7 @@ const fetchFollowing = async () => {
             <View style={styles.statDivider} />
             <TouchableOpacity 
               style={styles.statItem}
-              onPress={() => router.push(`/profile/${userId}/followers`)}
+              onPress={() => navigation.navigate('ProfileFollowers', { userId })}
             >
               <Text style={styles.statCount}>{profile.stats.followers}</Text>
               <Text style={styles.statLabel}>Followers</Text>
@@ -605,7 +601,7 @@ const fetchFollowing = async () => {
             <View style={styles.statDivider} />
             <TouchableOpacity 
               style={styles.statItem}
-              onPress={() => router.push(`/profile/${userId}/following`)}
+              onPress={() => navigation.navigate('ProfileFollowing', { userId })}
             >
               <Text style={styles.statCount}>{profile.stats.following}</Text>
               <Text style={styles.statLabel}>Following</Text>
@@ -632,7 +628,7 @@ const fetchFollowing = async () => {
                 
                 <GradientButton
                   title="Message"
-                  onPress={() => router.push('/message')}
+                  onPress={() => navigation.navigate('Message')}
                   style={styles.messageButton}
                 />
               </>

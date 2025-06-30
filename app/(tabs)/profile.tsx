@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -7,7 +7,7 @@ import ProfileScreenContent from '@/components/ProfileScreenContent';
 import { BRAND } from '@/constants/Colors';
 
 export default function ProfileTab() {
-  const router = useRouter();
+  const navigation = useNavigation();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +20,8 @@ export default function ProfileTab() {
 
         if (!token) {
           // If no token, redirect to login
-          router.replace('/login');
+          //navigation.navigate('Login');
+          (navigation as any).navigate('Login')
           return;
         }
         
